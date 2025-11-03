@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit.components.v1 import declare_component
 import streamlit.components.v1 as components
 import random
 
@@ -173,6 +174,7 @@ else:
 
     with st.container():
         st.markdown('<div id="minesweeper">', unsafe_allow_html=True)
+        right_click_cell = declare_component("right_click_cell", path="components/right_click_cell")
         for r in range(R):
             cols = st.columns(C)
             for c in range(C):
@@ -182,30 +184,19 @@ else:
                     color = num_color.get(t,"#000")
                     cols[c].markdown(f"<p style='text-align:center;font-size:20px;font-weight:600;color:{color}'>{t}</p>", unsafe_allow_html=True)
                 else:
-                    # Right-click to flag, left-click to reveal via lightweight HTML component
-                    is_flagged = (r,c) in flg
-                    face = "🚩" if is_flagged else ""
-                    html = f"""
-<div id='tile' style='
-  display:flex;align-items:center;justify-content:center;
-  width:36px;height:36px;user-select:none;cursor:pointer;
-'>
-  <span style='font-size:16px'>{face}</span>
-</div>
-<script>
-  const root = document.currentScript.previousElementSibling;
-  root.addEventListener('click', (e)=>{ Streamlit.setComponentValue('reveal:{r},{c}'); });
-  root.addEventListener('contextmenu', (e)=>{ e.preventDefault(); Streamlit.setComponentValue('flag:{r},{c}'); });
-</script>
-"""
-                    action = components.html(html, height=36, width=36, key=f"tile-{r}-{c}")
-                    if action:
-                        if isinstance(action, str) and action.startswith('flag:'):
-                            if (r,c) in flg: flg.remove((r,c))
-                            else: flg.add((r,c))
+                    result = right_click_cell(r=r, c=c, flagged=(r,c) in flg, key=f"tile-{r}-{c}")
+                    if result:
+                        action = result.get("action")
+                        rr = result.get("r")
+                        cc = result.get("c")
+                        if action == "flag":
+                            flg.add((rr,cc))
                             st.rerun()
-                        elif isinstance(action, str) and action.startswith('reveal:'):
-                            if not reveal(board, vis, flg, r, c):
+                        elif action == "unflag":
+                            if (rr,cc) in flg: flg.remove((rr,cc))
+                            st.rerun()
+                        elif action == "reveal":
+                            if not reveal(board, vis, flg, rr, cc):
                                 st.session_state.last_message = "💥 BOOM — You lost"
                                 st.session_state.last_message_type = "error"
                                 st.session_state.running=False
