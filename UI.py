@@ -159,11 +159,7 @@ else:
     C     = st.session_state.cols
     M     = st.session_state.mines
 
-    left_col, right_col = st.columns([1, 10])
-    with left_col:
-        st.checkbox("", key="flag")
-    with right_col:
-        st.markdown("<span style='color:#d93025;font-weight:800'>Flag Mode</span>", unsafe_allow_html=True)
+    # No separate flag mode; tiles handle flag toggling inline
 
     safe = R*C-M
     opened = sum((r,c) in vis for r in range(R) for c in range(C) if board[r][c]!=-1)
@@ -185,18 +181,20 @@ else:
                     color = num_color.get(t,"#000")
                     cols[c].markdown(f"<p style='text-align:center;font-size:20px;font-weight:600;color:{color}'>{t}</p>", unsafe_allow_html=True)
                 else:
-                    label = "⚑" if (r,c) in flg else "■"
+                    # Minimal hidden tile visuals; flagged shows a flag emoji
+                    label = "🚩" if (r,c) in flg else " "
                     if cols[c].button(label, key=f"{r}-{c}"):
-                        if st.session_state.flag:
-                            if (r,c) in flg: flg.remove((r,c))
-                            else: flg.add((r,c))
+                        # First click on hidden tile toggles flag if already flagged; otherwise reveal
+                        if (r,c) in flg:
+                            flg.remove((r,c))
+                            st.rerun()
                         else:
                             if not reveal(board, vis, flg, r, c):
                                 st.session_state.last_message = "💥 BOOM — You lost"
                                 st.session_state.last_message_type = "error"
                                 st.session_state.running=False
                                 st.rerun()
-                        st.rerun()
+                            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     if opened==safe:
