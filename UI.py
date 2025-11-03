@@ -1,6 +1,17 @@
 import streamlit as st
 import random
+import gspread
+from google.oauth2.service_account import Credentials
+import time
+import datetime
 
+def get_sheet():
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_file("service_key.json", scopes=scope)
+    client = gspread.authorize(creds)
+    
+    sheet = client.open("Minesweeper Scores").sheet1  # 你的表名
+    return sheet
 st.set_page_config(page_title="Minesweeper", layout="centered")
 
 # ================= CSS =================
