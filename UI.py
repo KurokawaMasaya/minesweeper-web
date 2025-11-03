@@ -48,6 +48,42 @@ html,body,.stApp{
   from{ background:#ff4f4f; }
   to{ background:#ffc8c8; }
 }
+
+.win-celebration{
+  animation: winPulse 0.6s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes winPulse{
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+  50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(46, 204, 113, 0.4); }
+}
+
+.lose-shake{
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake{
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px) rotate(-2deg); }
+  75% { transform: translateX(10px) rotate(2deg); }
+}
+
+.confetti{
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 9999;
+}
+
+.confetti-piece{
+  position: fixed; width: 8px; height: 8px; border-radius: 50%;
+  animation: confettiFall 3s linear forwards;
+  z-index: 9999;
+}
+
+@keyframes confettiFall{
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -119,7 +155,15 @@ else:
 
     st.write(f"Flags: {len(flags)}/{sum(r.count(-1) for r in board)}")
 
-    st.markdown("<div class='board'>", unsafe_allow_html=True)
+    # Check win condition
+    won = len(vis) == len(board) * len(board[0]) - sum(r.count(-1) for r in board)
+    board_class = ""
+    if won:
+        board_class = "win-celebration"
+    elif st.session_state.lost:
+        board_class = "lose-shake"
+
+    st.markdown(f"<div class='board {board_class}'>", unsafe_allow_html=True)
     for r in range(len(board)):
         st.markdown("<div class='row'>", unsafe_allow_html=True)
         cols = st.columns(len(board[0]))
@@ -128,9 +172,9 @@ else:
                 val = board[r][c]
                 txt = "💣" if val==-1 else (" " if val==0 else str(val))
                 color = {
-                    "1":"#1a4de8","2":"#0d7b32","3":"#d62828","4":"#3b0ca3",
-                    "5":"#7f0909","6":"#087e8b","7":"#111","8":"#666"
-                }.get(str(val),"#000")
+                    "1":"#0066ff","2":"#00cc44","3":"#ff3333","4":"#7b00ff",
+                    "5":"#ff6600","6":"#00ffff","7":"#000000","8":"#888888"
+                }.get(str(val),"#333333")
                 boom = "bomb-hit" if st.session_state.lost and val==-1 else ""
                 cols[c].markdown(
                     f"<div class='tile revealed {boom}' style='color:{color}'>{txt}</div>",
@@ -152,13 +196,39 @@ else:
     st.session_state.flag_mode = st.checkbox("🚩 Flag Mode (Shift+Click supported)")
 
     if st.session_state.lost:
-        st.error("💥 Boom! Game Over — Full board revealed.")
+        st.markdown("""
+        <div style='padding:15px;background:#fee;border:2px solid #f44;border-radius:8px;text-align:center;font-size:20px;font-weight:700;color:#d00;'>
+            💥 BOOM! Game Over
+        </div>
+        """, unsafe_allow_html=True)
         if st.button("Play Again"):
             st.session_state.running=False
             st.rerun()
 
-    elif len(vis) == R*C - sum(r.count(-1) for r in board):
-        st.success("🎉 You Win! — Full board revealed.")
+    elif won:
+        st.markdown("""
+        <div id='win-message' style='padding:15px;background:#efe;border:2px solid #4f4;border-radius:8px;text-align:center;font-size:24px;font-weight:700;color:#060;animation:winPulse 0.6s ease-in-out infinite;'>
+            🎉 YOU WIN! 🎉
+        </div>
+        <script>
+        // Confetti celebration effect
+        const colors = ['#ffd700','#ff6b6b','#4ecdc4','#45b7d1','#f7b731','#5f27cd'];
+        for(let i=0; i<60; i++){
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            const left = Math.random()*100;
+            const drift = (Math.random()-0.5)*200;
+            piece.style.left = left + '%';
+            piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+            piece.style.animationDelay = Math.random()*2 + 's';
+            piece.style.animationDuration = (2 + Math.random()*2) + 's';
+            piece.style.setProperty('--drift', drift/100);
+            piece.style.top = '-10px';
+            document.body.appendChild(piece);
+            setTimeout(() => piece.remove(), 5000);
+        }
+        </script>
+        """, unsafe_allow_html=True)
         if st.button("Play Again"):
             st.session_state.running=False
             st.rerun()
