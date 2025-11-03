@@ -26,7 +26,12 @@ def get_sheet():
     )
     client = gspread.authorize(creds)
     title = "Minesweeper Scores"
+    # Prefer opening by Sheet ID if provided in secrets; this avoids title
+    # collisions and access quirks across drives.
+    sheet_id = st.secrets.get("SHEET_ID")
     try:
+        if sheet_id:
+            return client.open_by_key(str(sheet_id)).sheet1
         return client.open(title).sheet1
     except SpreadsheetNotFound:
         # Create the spreadsheet if it doesn't exist yet and add headers
@@ -155,7 +160,7 @@ with tab_game:
 
         if st.button("Start Game"):
             start(R,C,M)
-            st.experimental_rerun()
+            st.rerun()
     else:
         board = st.session_state.board
         vis   = st.session_state.revealed
@@ -199,8 +204,8 @@ with tab_game:
                                     add_score(st.session_state.player, st.session_state.diff, "Lose", round(elapsed,2))
                                     st.error("💥 BOOM! You lost")
                                     st.session_state.running=False
-                                    st.experimental_rerun()
-                            st.experimental_rerun()
+                                    st.rerun()
+                            st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
         # Win condition
@@ -208,11 +213,11 @@ with tab_game:
             add_score(st.session_state.player, st.session_state.diff, "Win", round(elapsed,2))
             st.success("🎉 YOU WIN!")
             st.session_state.running=False
-            st.experimental_rerun()
+            st.rerun()
 
         if st.button("Restart"):
             st.session_state.running=False
-            st.experimental_rerun()
+            st.rerun()
 
 # ===== LEADERBOARD TAB (Step 6) =====
 with tab_board:
