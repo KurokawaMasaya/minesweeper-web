@@ -260,6 +260,12 @@ else:
     # Check win condition
     won = len(vis) == len(board) * len(board[0]) - sum(r.count(-1) for r in board)
 
+    # Show win/lose messages prominently
+    if st.session_state.lost:
+        st.markdown("<h2 style='color:#d00;text-align:center;padding:20px;'>💥 BOOM! GAME OVER</h2>", unsafe_allow_html=True)
+    elif won:
+        st.markdown("<h2 style='color:#060;text-align:center;padding:20px;'>🎉 YOU WIN! 🎉</h2>", unsafe_allow_html=True)
+
     st.markdown("<div class='board'>", unsafe_allow_html=True)
     for r in range(len(board)):
         st.markdown("<div class='row'>", unsafe_allow_html=True)
@@ -291,14 +297,7 @@ else:
 
     st.session_state.flag_mode = st.checkbox("🚩 Flag Mode (Shift+Click supported)")
 
-    if st.session_state.lost:
-        st.error("💥 BOOM! Game Over")
-        if st.button("Play Again"):
-            st.session_state.running=False
-            st.rerun()
-
-    elif won:
-        st.success("🎉 YOU WIN!")
+    if st.session_state.lost or won:
         if st.button("Play Again"):
             st.session_state.running=False
             st.rerun()
