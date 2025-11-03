@@ -27,85 +27,117 @@ def apply_theme(dark: bool):
   --primary: {primary};
 }}
 html, body, .stApp {{
-  background: {bg_grad} !important;
-  color: var(--text) !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #fafbfc !important;
+  color: #1d1d1f !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}}
+h1 {{
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  color: #1d1d1f !important;
 }}
 .game-card {{
-  background: var(--card-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 18px 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
 }}
 .status-bar {{ 
-  display:flex; gap:8px; align-items:center; flex-wrap:wrap; 
-  margin-bottom:12px; padding:8px 12px; 
-  background: #f7fafc;
-  border-radius:8px; border: 1px solid #e2e8f0;
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap; 
+  margin-bottom:20px; padding:14px 16px; 
+  background: rgba(248, 249, 250, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius:14px; 
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }}
 .pill {{
-  display:inline-flex; align-items:center; gap:6px; padding:6px 12px;
-  border: 1px solid #e2e8f0; border-radius:6px; 
-  background: #ffffff;
-  color: #1a202c; font-weight:600; font-size: 13px;
+  display:inline-flex; align-items:center; gap:7px; padding:7px 14px;
+  border: 0.5px solid rgba(0, 0, 0, 0.06); border-radius:10px; 
+  background: rgba(255, 255, 255, 0.9);
+  color: #1d1d1f; font-weight:500; font-size: 12.5px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}}
+.pill:hover {{
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }}
 
 .flag-indicator {{
-  display:inline-flex; align-items:center; gap:8px; padding:8px 16px;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  color: white; border-radius:20px; font-weight:700; font-size:14px;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  display:inline-flex; align-items:center; gap:7px; padding:6px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626; border-radius:10px; 
+  border: 0.5px solid rgba(239, 68, 68, 0.2);
+  font-weight:500; font-size:12.5px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
 }}
 
 #minesweeper {{
-  background: #ffffff;
-  padding:12px; border-radius:8px; border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background: rgba(248, 249, 250, 0.4);
+  padding:20px; border-radius:16px; 
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
 }}
 
 #minesweeper button {{
-  background: #f5f7fb !important;
-  border: 2px solid #e2e8f0 !important;
-  border-radius: 6px !important;
-  height: 36px !important; width: 36px !important;
-  font-size: 18px !important; font-weight: 700 !important; 
-  color: #1a202c !important;
-  transition: background 0.1s ease !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 10px !important;
+  height: 40px !important; width: 40px !important;
+  font-size: 16px !important; font-weight: 600 !important; 
+  color: #1d1d1f !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
   cursor: pointer !important;
   padding: 0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  letter-spacing: -0.01em;
 }}
 #minesweeper button:hover {{ 
-  background: #e2e8f0 !important;
-  border-color: #cbd5e0 !important;
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 1) !important;
+  transform: translateY(-1px);
 }}
 #minesweeper button:active {{ 
-  background: #cbd5e0 !important;
+  background: rgba(248, 249, 250, 1) !important;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }}
 
 .revealed-cell {{
-  background: #ffffff !important;
-  border: 2px solid #e2e8f0 !important;
-  border-radius: 6px !important;
-  height: 36px !important; width: 36px !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 10px !important;
+  height: 40px !important; width: 40px !important;
   display: flex !important; align-items: center !important; justify-content: center !important;
-  font-size: 18px !important; font-weight: 700 !important;
+  font-size: 16px !important; font-weight: 600 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  letter-spacing: -0.01em;
 }}
 div.stButton > button {{
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: #007aff !important;
   color: #ffffff !important;
   border: none !important;
-  font-weight: 700 !important; 
+  font-weight: 500 !important; 
   border-radius: 12px !important;
-  padding: 10px 24px !important;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
-  transition: all 0.2s ease !important;
+  padding: 10px 22px !important;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  letter-spacing: -0.01em;
 }}
 div.stButton > button:hover {{
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4) !important;
+  background: #0051d5 !important;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.35) !important;
+  transform: translateY(-1px);
 }}
 div[data-testid="stCheckbox"] label {{ color: #d93025 !important; font-weight: 800 !important; }}
 </style>
