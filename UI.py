@@ -61,17 +61,35 @@ button:hover, .stButton > button:hover {
 }
 
 /* Selectbox - make text dark and readable */
-.stSelectbox > div > div {
+.stSelectbox > div > div,
+.stSelectbox > div > div > div,
+[data-baseweb="select"] > div,
+[data-baseweb="select"] > div > div {
   background-color: #ffffff !important;
   color: #0b1a33 !important;
   border: 1px solid #b8c3d9 !important;
 }
 
-.stSelectbox label {
+.stSelectbox label,
+[data-baseweb="select"] label {
+  color: #0b1a33 !important;
+  font-weight: 600 !important;
+}
+
+[data-baseweb="select"] [role="option"] {
+  background-color: #ffffff !important;
   color: #0b1a33 !important;
 }
 
-.board { display:flex; gap:4px; flex-direction:column; margin-top:10px; }
+.board { 
+  display:flex; 
+  gap:4px; 
+  flex-direction:column; 
+  margin-top:10px; 
+  padding:8px;
+  border-radius:8px;
+  transition: all 0.3s ease;
+}
 .row { display:flex; gap:4px; }
 
 .tile{
@@ -92,38 +110,47 @@ button:hover, .stButton > button:hover {
 }
 
 .bomb-hit{
-  animation: boom 0.3s linear infinite alternate, bombPulse 0.6s ease-out;
+  animation: boom 0.2s linear infinite, bombPulse 1s ease-out infinite !important;
+  z-index: 10;
 }
 
 @keyframes boom{
-  0% { background:#ff0000; transform: scale(1); }
-  50% { background:#ff6b6b; transform: scale(1.3); }
-  100% { background:#ffcccc; transform: scale(1); }
+  0% { background:#ff0000 !important; transform: scale(1) rotate(0deg); }
+  25% { background:#ff6b6b !important; transform: scale(1.4) rotate(90deg); }
+  50% { background:#ff0000 !important; transform: scale(1.5) rotate(180deg); }
+  75% { background:#ffcccc !important; transform: scale(1.4) rotate(270deg); }
+  100% { background:#ff0000 !important; transform: scale(1) rotate(360deg); }
 }
 
 @keyframes bombPulse{
-  0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.8); }
-  50% { box-shadow: 0 0 20px 10px rgba(255, 0, 0, 0.6); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.9), 0 0 0 0 rgba(255, 100, 100, 0.7); }
+  50% { box-shadow: 0 0 30px 15px rgba(255, 0, 0, 0.8), 0 0 50px 25px rgba(255, 100, 100, 0.6); }
 }
 
 .win-celebration{
-  animation: winPulse 0.8s ease-in-out infinite, winGlow 1.5s ease-in-out infinite;
+  animation: winPulse 0.8s ease-in-out infinite, winGlow 1.5s ease-in-out infinite !important;
   position: relative;
 }
 
 @keyframes winPulse{
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+  50% { transform: scale(1.12); }
 }
 
 @keyframes winGlow{
-  0%, 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7), 0 0 0 0 rgba(255, 215, 0, 0.5); }
-  50% { box-shadow: 0 0 30px 15px rgba(46, 204, 113, 0.6), 0 0 40px 20px rgba(255, 215, 0, 0.4); }
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7), 0 0 0 0 rgba(255, 215, 0, 0.5);
+    border: 3px solid rgba(46, 204, 113, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 40px 20px rgba(46, 204, 113, 0.7), 0 0 60px 30px rgba(255, 215, 0, 0.5);
+    border: 3px solid rgba(46, 204, 113, 0.8);
+  }
 }
 
 .lose-shake{
-  animation: shake 0.6s ease-in-out, explode 0.8s ease-out;
+  animation: shake 0.8s ease-in-out, explode 1s ease-out !important;
+  border: 3px solid #ff0000;
 }
 
 @keyframes shake{
@@ -233,12 +260,15 @@ else:
     # Check win condition
     won = len(vis) == len(board) * len(board[0]) - sum(r.count(-1) for r in board)
     board_class = ""
+    board_style = ""
     if won:
         board_class = "win-celebration"
+        board_style = "border: 3px solid rgba(46, 204, 113, 0.8); box-shadow: 0 0 30px rgba(46, 204, 113, 0.6);"
     elif st.session_state.lost:
         board_class = "lose-shake"
+        board_style = "border: 3px solid #ff0000; box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);"
 
-    st.markdown(f"<div class='board {board_class}'>", unsafe_allow_html=True)
+    st.markdown(f"<div class='board {board_class}' style='{board_style}'>", unsafe_allow_html=True)
     for r in range(len(board)):
         st.markdown("<div class='row'>", unsafe_allow_html=True)
         cols = st.columns(len(board[0]))
