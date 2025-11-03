@@ -13,8 +13,9 @@ client = gspread.authorize(creds)
 sheet = client.open("Minesweeper Scores").sheet1
 # ===== Google Sheets =====
 def get_sheet():
+    service_info = json.loads(st.secrets["GSPREAD_SERVICE_ACCOUNT"])  
     creds = Credentials.from_service_account_info(
-        st.secrets["GSPREAD_SERVICE_ACCOUNT"],
+        service_info,
         scopes=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
     )
     client = gspread.authorize(creds)
