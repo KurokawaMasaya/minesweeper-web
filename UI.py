@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import random
 
 st.set_page_config(page_title="Minesweeper", layout="centered")
@@ -181,14 +182,29 @@ else:
                     color = num_color.get(t,"#000")
                     cols[c].markdown(f"<p style='text-align:center;font-size:20px;font-weight:600;color:{color}'>{t}</p>", unsafe_allow_html=True)
                 else:
-                    # Minimal hidden tile visuals; flagged shows a flag emoji
-                    label = "🚩" if (r,c) in flg else " "
-                    if cols[c].button(label, key=f"{r}-{c}"):
-                        # First click on hidden tile toggles flag if already flagged; otherwise reveal
-                        if (r,c) in flg:
-                            flg.remove((r,c))
+                    # Right-click to flag, left-click to reveal via lightweight HTML component
+                    is_flagged = (r,c) in flg
+                    face = "🚩" if is_flagged else ""
+                    html = f"""
+<div id='tile' style='
+  display:flex;align-items:center;justify-content:center;
+  width:36px;height:36px;user-select:none;cursor:pointer;
+'>
+  <span style='font-size:16px'>{face}</span>
+</div>
+<script>
+  const root = document.currentScript.previousElementSibling;
+  root.addEventListener('click', (e)=>{ Streamlit.setComponentValue('reveal:{r},{c}'); });
+  root.addEventListener('contextmenu', (e)=>{ e.preventDefault(); Streamlit.setComponentValue('flag:{r},{c}'); });
+</script>
+"""
+                    action = components.html(html, height=36, width=36, key=f"tile-{r}-{c}")
+                    if action:
+                        if isinstance(action, str) and action.startswith('flag:'):
+                            if (r,c) in flg: flg.remove((r,c))
+                            else: flg.add((r,c))
                             st.rerun()
-                        else:
+                        elif isinstance(action, str) and action.startswith('reveal:'):
                             if not reveal(board, vis, flg, r, c):
                                 st.session_state.last_message = "💥 BOOM — You lost"
                                 st.session_state.last_message_type = "error"
