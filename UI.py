@@ -8,10 +8,13 @@ import pandas as pd
 
 # ===== Google Sheets =====
 def get_sheet():
-    scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_file("service_key.json", scopes=scope)
+    creds = Credentials.from_service_account_info(
+        st.secrets["GSPREAD_SERVICE_ACCOUNT"],
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
     client = gspread.authorize(creds)
     sheet = client.open("Minesweeper Scores").sheet1
+    return sheet
     return sheet
 
 def add_score(name, diff, result, elapsed):
