@@ -40,24 +40,79 @@ html, body, .stApp {{
   padding: 18px 16px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }}
-.status-bar {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }}
+.status-bar {{ 
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap; 
+  margin-bottom:16px; padding:12px; 
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,248,255,0.9) 100%);
+  border-radius:12px; border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}}
 .pill {{
-  display:inline-flex; align-items:center; gap:6px; padding:6px 10px;
-  border: 1px solid var(--border); border-radius:999px; background: var(--tile-bg);
-  color: var(--text); font-weight:700; font-size: 13px;
+  display:inline-flex; align-items:center; gap:8px; padding:8px 14px;
+  border: none; border-radius:20px; 
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff; font-weight:700; font-size: 13px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }}
+.pill:nth-child(2) {{ background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }}
+.pill:nth-child(3) {{ background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }}
+.pill:nth-child(4) {{ background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }}
+
+.flag-indicator {{
+  display:inline-flex; align-items:center; gap:8px; padding:8px 16px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  color: white; border-radius:20px; font-weight:700; font-size:14px;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}}
+
+#minesweeper {{
+  background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(240,248,255,0.5) 100%);
+  padding:16px; border-radius:16px; border: 2px solid var(--border);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.1);
+}}
+
 #minesweeper button {{
-  background-color: var(--tile-bg) !important;
-  border: 1px solid var(--tile-border) !important;
-  border-radius: 8px !important;
-  height: 36px !important; width: 36px !important;
-  font-size: 18px !important; font-weight: 700 !important; color: var(--text) !important;
-  transition: transform .08s ease, box-shadow .12s ease;
+  background: linear-gradient(135deg, #e8efff 0%, #d6e4ff 100%) !important;
+  border: 2px solid #b8d4ff !important;
+  border-radius: 10px !important;
+  height: 40px !important; width: 40px !important;
+  font-size: 20px !important; font-weight: 800 !important; 
+  color: var(--text) !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.6);
+  cursor: pointer !important;
 }}
-#minesweeper button:hover {{ transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.12); }}
+#minesweeper button:hover {{ 
+  transform: translateY(-2px) scale(1.05) !important; 
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.8) !important;
+  background: linear-gradient(135deg, #d6e4ff 0%, #c4d9ff 100%) !important;
+}}
+#minesweeper button:active {{ 
+  transform: translateY(0) scale(0.98) !important;
+}}
+
+.revealed-cell {{
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  border: 2px solid #dee2e6 !important;
+  border-radius: 10px !important;
+  height: 40px !important; width: 40px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
+  font-size: 20px !important; font-weight: 700 !important;
+}}
 div.stButton > button {{
-  background-color: #e8f0fe !important; color: var(--primary) !important;
-  border: 1px solid #b0c7ff !important; font-weight: 700 !important; border-radius: 10px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important; 
+  border-radius: 12px !important;
+  padding: 10px 24px !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+  transition: all 0.2s ease !important;
+}}
+div.stButton > button:hover {{
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4) !important;
 }}
 div[data-testid="stCheckbox"] label {{ color: #d93025 !important; font-weight: 800 !important; }}
 </style>
@@ -163,15 +218,27 @@ else:
     C     = st.session_state.cols
     M     = st.session_state.mines
 
-    left_col, right_col = st.columns([1, 10])
-    with left_col:
-        st.checkbox("", key="flag")
-    with right_col:
-        st.markdown("<span style='color:#d93025;font-weight:700'>Flag Mode</span>", unsafe_allow_html=True)
+    # Flag mode indicator
+    if st.session_state.flag:
+        st.markdown('<div class="flag-indicator">🚩 Flag Mode ACTIVE</div>', unsafe_allow_html=True)
+    else:
+        left_col, right_col = st.columns([1, 20])
+        with left_col:
+            st.checkbox("", key="flag")
+        with right_col:
+            st.markdown("<span style='color:#666;font-weight:600'>Toggle Flag Mode</span>", unsafe_allow_html=True)
 
+    # Status bar with pills
     safe = R*C-M
     opened = sum((r,c) in vis for r in range(R) for c in range(C) if board[r][c]!=-1)
-    st.write(f"Revealed {opened}/{safe} | Flags {len(flg)} | Mines {M}")
+    st.markdown(f"""
+    <div class="status-bar">
+        <span class="pill">📊 Revealed: {opened}/{safe}</span>
+        <span class="pill">🚩 Flags: {len(flg)}</span>
+        <span class="pill">💣 Mines: {M}</span>
+        <span class="pill">🎯 Progress: {int(opened/safe*100) if safe > 0 else 0}%</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     num_color = {
         "1":"#1A73E8","2":"#188038","3":"#D93025","4":"#3457D5",
@@ -187,7 +254,10 @@ else:
                     v = board[r][c]
                     t = "□" if v==0 else str(v)
                     color = num_color.get(t,"#000")
-                    cols[c].markdown(f"<p style='text-align:center;font-size:20px;font-weight:600;color:{color}'>{t}</p>", unsafe_allow_html=True)
+                    cols[c].markdown(
+                        f"<div class='revealed-cell' style='color:{color}'>{t}</div>", 
+                        unsafe_allow_html=True
+                    )
                 else:
                     label = "⚑" if (r,c) in flg else "■"
                     if cols[c].button(label, key=f"{r}-{c}"):
