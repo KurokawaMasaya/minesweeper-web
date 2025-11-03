@@ -188,9 +188,13 @@ def start(R,C,M):
     st.session_state.cols=C
     st.session_state.mines=M
     st.session_state.running=True
+    st.session_state.lost=False
+    st.session_state.won=False
 
 if "running" not in st.session_state: st.session_state.running=False
 if "flag" not in st.session_state: st.session_state.flag=False
+if "lost" not in st.session_state: st.session_state.lost=False
+if "won" not in st.session_state: st.session_state.won=False
 if "last_message" not in st.session_state: st.session_state.last_message=None
 if "last_message_type" not in st.session_state: st.session_state.last_message_type=None
 
@@ -256,10 +260,11 @@ else:
         for r in range(R):
             cols = st.columns(C)
             for c in range(C):
-                if (r,c) in vis:
+                # Show all tiles if game is over (won or lost)
+                if (r,c) in vis or st.session_state.lost or st.session_state.won:
                     v = board[r][c]
-                    t = "□" if v==0 else str(v)
-                    color = num_color.get(t,"#000")
+                    t = "💣" if v==-1 else ("□" if v==0 else str(v))
+                    color = num_color.get(t,"#e5e5e7")
                     cols[c].markdown(
                         f"<div class='revealed-cell' style='color:{color}'>{t}</div>", 
                         unsafe_allow_html=True
@@ -272,6 +277,11 @@ else:
                             else: flg.add((r,c))
                         else:
                             if not reveal(board, vis, flg, r, c):
+                                # Reveal all tiles when mine is hit
+                                st.session_state.lost = True
+                                for rr in range(R):
+                                    for cc in range(C):
+                                        vis.add((rr, cc))
                                 st.session_state.last_message = "💥 BOOM — You lost"
                                 st.session_state.last_message_type = "error"
                                 st.session_state.running=False
@@ -280,6 +290,11 @@ else:
         st.markdown("</div>", unsafe_allow_html=True)
 
     if opened==safe:
+        # Reveal all tiles when win
+        st.session_state.won = True
+        for r in range(R):
+            for c in range(C):
+                vis.add((r, c))
         st.session_state.last_message = "🎉 YOU WIN!"
         st.session_state.last_message_type = "success"
         st.session_state.running=False
