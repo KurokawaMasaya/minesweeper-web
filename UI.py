@@ -259,16 +259,8 @@ else:
 
     # Check win condition
     won = len(vis) == len(board) * len(board[0]) - sum(r.count(-1) for r in board)
-    board_class = ""
-    board_style = ""
-    if won:
-        board_class = "win-celebration"
-        board_style = "border: 3px solid rgba(46, 204, 113, 0.8); box-shadow: 0 0 30px rgba(46, 204, 113, 0.6);"
-    elif st.session_state.lost:
-        board_class = "lose-shake"
-        board_style = "border: 3px solid #ff0000; box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);"
 
-    st.markdown(f"<div class='board {board_class}' style='{board_style}'>", unsafe_allow_html=True)
+    st.markdown("<div class='board'>", unsafe_allow_html=True)
     for r in range(len(board)):
         st.markdown("<div class='row'>", unsafe_allow_html=True)
         cols = st.columns(len(board[0]))
@@ -280,9 +272,8 @@ else:
                     "1":"#0066ff","2":"#00cc44","3":"#ff3333","4":"#7b00ff",
                     "5":"#ff6600","6":"#00ffff","7":"#000000","8":"#888888"
                 }.get(str(val),"#333333")
-                boom = "bomb-hit" if st.session_state.lost and val==-1 else ""
                 cols[c].markdown(
-                    f"<div class='tile revealed {boom}' style='color:{color}'>{txt}</div>",
+                    f"<div class='tile revealed' style='color:{color}'>{txt}</div>",
                     unsafe_allow_html=True
                 )
             else:
@@ -301,57 +292,13 @@ else:
     st.session_state.flag_mode = st.checkbox("🚩 Flag Mode (Shift+Click supported)")
 
     if st.session_state.lost:
-        st.markdown("""
-        <div class='lose-message' style='padding:20px;background:linear-gradient(135deg, #fee 0%, #fcc 100%);border:3px solid #f44;border-radius:12px;text-align:center;font-size:28px;font-weight:900;color:#c00;text-shadow:2px 2px 4px rgba(0,0,0,0.2);animation:loseMessage 1s ease-in-out;'>
-            💥💥💥 BOOM! GAME OVER 💥💥💥
-        </div>
-        <style>
-        @keyframes loseMessage{
-          0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
-          50% { transform: scale(1.15) rotate(5deg); }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-        </style>
-        """, unsafe_allow_html=True)
+        st.error("💥 BOOM! Game Over")
         if st.button("Play Again"):
             st.session_state.running=False
             st.rerun()
 
     elif won:
-        st.markdown("""
-        <div id='win-message' style='padding:25px;background:linear-gradient(135deg, #efe 0%, #dfd 100%);border:4px solid #4f4;border-radius:15px;text-align:center;font-size:32px;font-weight:900;color:#060;text-shadow:2px 2px 6px rgba(0,200,0,0.3);animation:winMessage 1.2s ease-out, winPulseText 1.5s ease-in-out infinite 1.2s;'>
-            🎉🎉🎉 YOU WIN! 🎉🎉🎉
-        </div>
-        <style>
-        @keyframes winMessage{
-          0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
-          60% { transform: scale(1.2) rotate(5deg); }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-        @keyframes winPulseText{
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        </style>
-        <script>
-        // Enhanced confetti celebration effect
-        const colors = ['#ffd700','#ff6b6b','#4ecdc4','#45b7d1','#f7b731','#5f27cd','#ff1744','#00e676'];
-        for(let i=0; i<80; i++){
-            const piece = document.createElement('div');
-            piece.className = 'confetti-piece';
-            const left = Math.random()*100;
-            piece.style.left = left + '%';
-            piece.style.background = colors[Math.floor(Math.random()*colors.length)];
-            piece.style.animationDelay = Math.random()*1.5 + 's';
-            piece.style.animationDuration = (2 + Math.random()*2) + 's';
-            piece.style.top = '-10px';
-            piece.style.width = (6 + Math.random()*6) + 'px';
-            piece.style.height = (6 + Math.random()*6) + 'px';
-            document.body.appendChild(piece);
-            setTimeout(() => piece.remove(), 6000);
-        }
-        </script>
-        """, unsafe_allow_html=True)
+        st.success("🎉 YOU WIN!")
         if st.button("Play Again"):
             st.session_state.running=False
             st.rerun()
