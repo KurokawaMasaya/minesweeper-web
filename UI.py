@@ -10,7 +10,7 @@ import pandas as pd
 def get_sheet():
     creds = Credentials.from_service_account_info(
         st.secrets["GSPREAD_SERVICE_ACCOUNT"],
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        scopes=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
     )
     client = gspread.authorize(creds)
     sheet = client.open("Minesweeper Scores").sheet1
