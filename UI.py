@@ -27,116 +27,97 @@ def apply_theme(dark: bool):
   --primary: {primary};
 }}
 html, body, .stApp {{
-  background: #fafbfc !important;
-  color: #1d1d1f !important;
+  background: #0a0a0a !important;
+  color: #e5e5e7 !important;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
-  letter-spacing: -0.01em;
 }}
 h1 {{
-  font-weight: 600 !important;
-  letter-spacing: -0.02em !important;
-  color: #1d1d1f !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  color: #ffffff !important;
+  font-size: 2.5rem !important;
 }}
 .game-card {{
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  border-radius: 20px;
-  padding: 32px 28px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }}
 .status-bar {{ 
-  display:flex; gap:10px; align-items:center; flex-wrap:wrap; 
-  margin-bottom:20px; padding:14px 16px; 
-  background: rgba(248, 249, 250, 0.6);
-  backdrop-filter: blur(10px);
-  border-radius:14px; 
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap; 
+  margin-bottom:24px; padding:16px 20px; 
+  background: #141414;
+  border-radius:16px; 
+  border: 1px solid #2a2a2a;
 }}
 .pill {{
-  display:inline-flex; align-items:center; gap:7px; padding:7px 14px;
-  border: 0.5px solid rgba(0, 0, 0, 0.06); border-radius:10px; 
-  background: rgba(255, 255, 255, 0.9);
-  color: #1d1d1f; font-weight:500; font-size: 12.5px;
+  display:inline-flex; align-items:center; gap:8px; padding:9px 16px;
+  border: 1px solid #2a2a2a; border-radius:12px; 
+  background: #1f1f1f;
+  color: #e5e5e7; font-weight:500; font-size: 13px;
   letter-spacing: -0.01em;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease;
 }}
 .pill:hover {{
-  background: rgba(255, 255, 255, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+  background: #252525;
+  border-color: #333;
 }}
 
 .flag-indicator {{
-  display:inline-flex; align-items:center; gap:7px; padding:6px 14px;
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626; border-radius:10px; 
-  border: 0.5px solid rgba(239, 68, 68, 0.2);
-  font-weight:500; font-size:12.5px;
-  letter-spacing: -0.01em;
-  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
+  display:inline-flex; align-items:center; gap:8px; padding:8px 16px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171; border-radius:12px; 
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight:500; font-size:13px;
 }}
 
 #minesweeper {{
-  background: rgba(248, 249, 250, 0.4);
-  padding:20px; border-radius:16px; 
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
+  background: #141414;
+  padding:24px; border-radius:20px; 
+  border: 1px solid #2a2a2a;
 }}
 
 #minesweeper button {{
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 10px !important;
-  height: 40px !important; width: 40px !important;
-  font-size: 16px !important; font-weight: 600 !important; 
-  color: #1d1d1f !important;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: #1f1f1f !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 12px !important;
+  height: 44px !important; width: 44px !important;
+  font-size: 17px !important; font-weight: 600 !important; 
+  color: #e5e5e7 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   cursor: pointer !important;
   padding: 0 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.8);
-  letter-spacing: -0.01em;
 }}
 #minesweeper button:hover {{ 
-  background: rgba(255, 255, 255, 1) !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 1) !important;
-  transform: translateY(-1px);
+  background: #252525 !important;
+  border-color: #333 !important;
+  transform: translateY(-2px);
 }}
 #minesweeper button:active {{ 
-  background: rgba(248, 249, 250, 1) !important;
+  background: #1a1a1a !important;
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }}
 
 .revealed-cell {{
-  background: rgba(255, 255, 255, 0.98) !important;
-  border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 10px !important;
-  height: 40px !important; width: 40px !important;
+  background: #0f0f0f !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 12px !important;
+  height: 44px !important; width: 44px !important;
   display: flex !important; align-items: center !important; justify-content: center !important;
-  font-size: 16px !important; font-weight: 600 !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-  letter-spacing: -0.01em;
+  font-size: 17px !important; font-weight: 600 !important;
 }}
 div.stButton > button {{
-  background: #007aff !important;
-  color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0a0a0a !important;
   border: none !important;
-  font-weight: 500 !important; 
+  font-weight: 600 !important; 
   border-radius: 12px !important;
-  padding: 10px 22px !important;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25) !important;
+  padding: 12px 24px !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  letter-spacing: -0.01em;
 }}
 div.stButton > button:hover {{
-  background: #0051d5 !important;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.35) !important;
+  background: #f5f5f5 !important;
   transform: translateY(-1px);
 }}
 div[data-testid="stCheckbox"] label {{ color: #d93025 !important; font-weight: 800 !important; }}
