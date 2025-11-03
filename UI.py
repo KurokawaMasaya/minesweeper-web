@@ -3,301 +3,212 @@ import random
 
 st.set_page_config(page_title="Minesweeper", layout="centered")
 
-# ============== Init ==============
-if "running" not in st.session_state: st.session_state.running = False
-if "board" not in st.session_state: st.session_state.board = None
-if "revealed" not in st.session_state: st.session_state.revealed = set()
-if "flags" not in st.session_state: st.session_state.flags = set()
-if "lost" not in st.session_state: st.session_state.lost = False
+# ============== Theme ==============
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
 
-# ============== CSS ==============
-st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+def apply_theme(dark: bool):
+    bg_grad = "linear-gradient(135deg,#f8fbff 0%,#eef3ff 50%,#e9f7ff 100%)" if not dark else "linear-gradient(135deg,#0b1020 0%,#111831 50%,#0f1a2b 100%)"
+    text = "#0b1a33" if not dark else "#e6eefc"
+    card_bg = "rgba(255,255,255,0.75)" if not dark else "rgba(17,26,49,0.55)"
+    border = "#d7e3ff" if not dark else "#2a3a5e"
+    tile_bg = "#f5f7fb" if not dark else "#162343"
+    tile_border = "#d6dbe8" if not dark else "#20325a"
+    primary = "#1a73e8"
 
+    st.markdown(f"""
 <style>
-html,body,.stApp{
-  background: #f2f6ff;
-  font-family: -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
-  color: #0b1a33 !important;
-}
-
-/* Make all text dark and readable */
-h1, h2, h3, h4, h5, h6, p, label, div, span, .stText, .stMarkdown {
-  color: #0b1a33 !important;
-}
-
-/* Slider labels */
-.stSlider label {
-  color: #0b1a33 !important;
-  font-weight: 600;
-}
-
-/* Selectbox labels */
-.stSelectbox label {
-  color: #0b1a33 !important;
-  font-weight: 600;
-}
-
-/* Regular text */
-.stText {
-  color: #0b1a33 !important;
-}
-
-/* Write outputs */
-.stWrite {
-  color: #0b1a33 !important;
-}
-
-/* Buttons - make text white on dark background */
-button, .stButton > button {
-  color: #ffffff !important;
-  background-color: #2563eb !important;
-  border-color: #1e40af !important;
-}
-
-button:hover, .stButton > button:hover {
-  background-color: #1d4ed8 !important;
-  color: #ffffff !important;
-}
-
-/* Selectbox - make text dark and readable */
-.stSelectbox > div > div,
-.stSelectbox > div > div > div,
-[data-baseweb="select"] > div,
-[data-baseweb="select"] > div > div {
-  background-color: #ffffff !important;
-  color: #0b1a33 !important;
-  border: 1px solid #b8c3d9 !important;
-}
-
-.stSelectbox label,
-[data-baseweb="select"] label {
-  color: #0b1a33 !important;
-  font-weight: 600 !important;
-}
-
-[data-baseweb="select"] [role="option"] {
-  background-color: #ffffff !important;
-  color: #0b1a33 !important;
-}
-
-.board { 
-  display:flex; 
-  gap:4px; 
-  flex-direction:column; 
-  margin-top:10px; 
-  padding:8px;
-  border-radius:8px;
-  transition: all 0.3s ease;
-}
-.row { display:flex; gap:4px; }
-
-.tile{
-  width:34px; height:34px;
-  display:flex; align-items:center; justify-content:center;
-  border:1px solid #b8c3d9;
-  border-radius:6px; cursor:pointer; user-select:none;
-  font-family:'VT323',monospace; font-size:22px; font-weight:700;
-  background:#e7efff; color:#0b1a33;
-  transition: all .15s ease;
-}
-.tile:hover{ transform:scale(1.1); }
-
-.tile.revealed{
-  background:white !important; 
-  border-color:#a9b6d4;
-  transform:scale(1) !important;
-}
-
-.bomb-hit{
-  animation: boom 0.2s linear infinite, bombPulse 1s ease-out infinite !important;
-  z-index: 10;
-}
-
-@keyframes boom{
-  0% { background:#ff0000 !important; transform: scale(1) rotate(0deg); }
-  25% { background:#ff6b6b !important; transform: scale(1.4) rotate(90deg); }
-  50% { background:#ff0000 !important; transform: scale(1.5) rotate(180deg); }
-  75% { background:#ffcccc !important; transform: scale(1.4) rotate(270deg); }
-  100% { background:#ff0000 !important; transform: scale(1) rotate(360deg); }
-}
-
-@keyframes bombPulse{
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.9), 0 0 0 0 rgba(255, 100, 100, 0.7); }
-  50% { box-shadow: 0 0 30px 15px rgba(255, 0, 0, 0.8), 0 0 50px 25px rgba(255, 100, 100, 0.6); }
-}
-
-.win-celebration{
-  animation: winPulse 0.8s ease-in-out infinite, winGlow 1.5s ease-in-out infinite !important;
-  position: relative;
-}
-
-@keyframes winPulse{
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); }
-}
-
-@keyframes winGlow{
-  0%, 100% { 
-    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7), 0 0 0 0 rgba(255, 215, 0, 0.5);
-    border: 3px solid rgba(46, 204, 113, 0.3);
-  }
-  50% { 
-    box-shadow: 0 0 40px 20px rgba(46, 204, 113, 0.7), 0 0 60px 30px rgba(255, 215, 0, 0.5);
-    border: 3px solid rgba(46, 204, 113, 0.8);
-  }
-}
-
-.lose-shake{
-  animation: shake 0.8s ease-in-out, explode 1s ease-out !important;
-  border: 3px solid #ff0000;
-}
-
-@keyframes shake{
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  10% { transform: translateX(-15px) rotate(-3deg); }
-  20% { transform: translateX(15px) rotate(3deg); }
-  30% { transform: translateX(-12px) rotate(-2deg); }
-  40% { transform: translateX(12px) rotate(2deg); }
-  50% { transform: translateX(-8px) rotate(-1deg); }
-  60% { transform: translateX(8px) rotate(1deg); }
-  70% { transform: translateX(-5px) rotate(0deg); }
-  80% { transform: translateX(5px) rotate(0deg); }
-}
-
-@keyframes explode{
-  0% { filter: brightness(1); }
-  50% { filter: brightness(1.5) contrast(1.2); }
-  100% { filter: brightness(1); }
-}
-
-.confetti{
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 9999;
-}
-
-.confetti-piece{
-  position: fixed; width: 8px; height: 8px; border-radius: 50%;
-  animation: confettiFall 3s linear forwards;
-  z-index: 9999;
-}
-
-@keyframes confettiFall{
-  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-}
+:root {{
+  --text: {text};
+  --card-bg: {card_bg};
+  --border: {border};
+  --tile-bg: {tile_bg};
+  --tile-border: {tile_border};
+  --primary: {primary};
+}}
+html, body, .stApp {{
+  background: {bg_grad} !important;
+  color: var(--text) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}}
+.game-card {{
+  background: var(--card-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}}
+.status-bar {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }}
+.pill {{
+  display:inline-flex; align-items:center; gap:6px; padding:6px 10px;
+  border: 1px solid var(--border); border-radius:999px; background: var(--tile-bg);
+  color: var(--text); font-weight:700; font-size: 13px;
+}}
+#minesweeper button {{
+  background-color: var(--tile-bg) !important;
+  border: 1px solid var(--tile-border) !important;
+  border-radius: 8px !important;
+  height: 36px !important; width: 36px !important;
+  font-size: 18px !important; font-weight: 700 !important; color: var(--text) !important;
+  transition: transform .08s ease, box-shadow .12s ease;
+}}
+#minesweeper button:hover {{ transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.12); }}
+div.stButton > button {{
+  background-color: #e8f0fe !important; color: var(--primary) !important;
+  border: 1px solid #b0c7ff !important; font-weight: 700 !important; border-radius: 10px !important;
+}}
+div[data-testid="stCheckbox"] label {{ color: #d93025 !important; font-weight: 800 !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ============== Core Logic ==============
-def neighbors(r,c,R,C):
+apply_theme(st.session_state.dark_mode)
+
+# ================= CSS =================
+st.markdown("""<div class='game-card'>""", unsafe_allow_html=True)
+
+# ================= Minesweeper logic =================
+
+def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
             if dr==0 and dc==0: continue
-            rr,cc=r+dr,c+dc
-            if 0<=rr<R and 0<=cc<C: yield rr,cc
+            rr, cc = r+dr, c+dc
+            if 0 <= rr < R and 0 <= cc < C:
+                yield rr, cc
 
-def init_board(R,C,M):
-    board=[[0]*C for _ in range(R)]
-    mines=set(random.sample([(r,c) for r in range(R) for c in range(C)],M))
-    for r,c in mines: board[r][c] = -1
-    for r,c in mines:
-        for nr,nc in neighbors(r,c,R,C):
-            if board[nr][nc]!=-1: board[nr][nc] +=1
-    return board
+def init_board(R, C): return [[0]*C for _ in range(R)]
 
-def flood(r,c,board,vis):
+def place(board, mines):
+    R, C = len(board), len(board[0])
+    # Ensure we never request more mines than available cells - 1
+    mines = max(0, min(mines, R * C - 1))
+    # Sample unique positions to avoid potential infinite loops
+    all_cells = [(r, c) for r in range(R) for c in range(C)]
+    mine_positions = set(random.sample(all_cells, mines)) if mines > 0 else set()
+
+    # Place mines
+    for r, c in mine_positions:
+        board[r][c] = -1
+
+    # Update adjacent counts
+    for r, c in mine_positions:
+        for nr, nc in neighbors(r, c, R, C):
+            if board[nr][nc] != -1:
+                board[nr][nc] += 1
+
+def flood(board, vis, r, c):
     stack=[(r,c)]
     while stack:
-        x,y=stack.pop()
+        x,y = stack.pop()
         if (x,y) in vis: continue
         vis.add((x,y))
         if board[x][y]==0:
             for nx,ny in neighbors(x,y,len(board),len(board[0])):
                 if (nx,ny) not in vis: stack.append((nx,ny))
 
-def reveal(r,c):
-    board=st.session_state.board
-    vis=st.session_state.revealed
-    flags=st.session_state.flags
+def reveal(board, vis, flg, r, c):
+    if (r,c) in flg: return True
+    if board[r][c]==-1: return False
+    if board[r][c]==0: flood(board, vis, r, c)
+    else: vis.add((r,c))
+    return True
 
-    if (r,c) in flags: return
+def start(R,C,M):
+    b = init_board(R,C)
+    # Clamp M defensively in case the caller passes too many mines
+    M = max(0, min(M, R * C - 1))
+    place(b,M)
+    st.session_state.board = b
+    st.session_state.revealed=set()
+    st.session_state.flags=set()
+    st.session_state.rows=R
+    st.session_state.cols=C
+    st.session_state.mines=M
+    st.session_state.running=True
 
-    if board[r][c]==-1:
-        st.session_state.lost=True
-        st.session_state.running=False
-        return
+if "running" not in st.session_state: st.session_state.running=False
+if "flag" not in st.session_state: st.session_state.flag=False
+if "last_message" not in st.session_state: st.session_state.last_message=None
+if "last_message_type" not in st.session_state: st.session_state.last_message_type=None
 
-    if board[r][c]==0:
-        flood(r,c,board,vis)
+# ================= UI =================
+st.title("Minesweeper")
+
+# Show one-time game result notices
+if st.session_state.last_message:
+    if st.session_state.last_message_type == "success":
+        st.success(st.session_state.last_message)
     else:
-        vis.add((r,c))
-
-# ============== UI ==============
-st.title("✨ Minesweeper (Animated Edition)")
+        st.error(st.session_state.last_message)
+    st.session_state.last_message = None
+    st.session_state.last_message_type = None
 
 if not st.session_state.running:
     R = st.slider("Rows",5,20,10)
-    C = st.slider("Cols",5,20,10)
+    C = st.slider("Columns",5,20,10)
     diff = st.selectbox("Difficulty",["Easy","Medium","Hard"])
-    M = int(R*C*{"Easy":0.12,"Medium":0.18,"Hard":0.26}[diff])
+    M = max(1, int(R*C*{"Easy":.1,"Medium":.2,"Hard":.3}[diff]))
 
-    if st.button("Start Game 🎮"):
-        st.session_state.board=init_board(R,C,M)
-        st.session_state.revealed=set()
-        st.session_state.flags=set()
-        st.session_state.running=True
-        st.session_state.lost=False
+    if st.button("Start Game"):
+        start(R,C,M)
         st.rerun()
 
 else:
     board = st.session_state.board
     vis   = st.session_state.revealed
-    flags = st.session_state.flags
+    flg   = st.session_state.flags
+    R     = st.session_state.rows
+    C     = st.session_state.cols
+    M     = st.session_state.mines
 
-    st.write(f"Flags: {len(flags)}/{sum(r.count(-1) for r in board)}")
+    left_col, right_col = st.columns([1, 10])
+    with left_col:
+        st.checkbox("", key="flag")
+    with right_col:
+        st.markdown("<span style='color:#d93025;font-weight:700'>Flag Mode</span>", unsafe_allow_html=True)
 
-    # Check win condition
-    won = len(vis) == len(board) * len(board[0]) - sum(r.count(-1) for r in board)
+    safe = R*C-M
+    opened = sum((r,c) in vis for r in range(R) for c in range(C) if board[r][c]!=-1)
+    st.write(f"Revealed {opened}/{safe} | Flags {len(flg)} | Mines {M}")
 
-    # Show win/lose messages prominently
-    if st.session_state.lost:
-        st.markdown("<h2 style='color:#d00;text-align:center;padding:20px;'>💥 BOOM! GAME OVER</h2>", unsafe_allow_html=True)
-    elif won:
-        st.markdown("<h2 style='color:#060;text-align:center;padding:20px;'>🎉 YOU WIN! 🎉</h2>", unsafe_allow_html=True)
+    num_color = {
+        "1":"#1A73E8","2":"#188038","3":"#D93025","4":"#3457D5",
+        "5":"#8C2F39","6":"#00796B","7":"#333333","8":"#757575"
+    }
 
-    st.markdown("<div class='board'>", unsafe_allow_html=True)
-    for r in range(len(board)):
-        st.markdown("<div class='row'>", unsafe_allow_html=True)
-        cols = st.columns(len(board[0]))
-        for c in range(len(board[0])):
-            if (r,c) in vis or st.session_state.lost:
-                val = board[r][c]
-                txt = "💣" if val==-1 else (" " if val==0 else str(val))
-                color = {
-                    "1":"#0066ff","2":"#00cc44","3":"#ff3333","4":"#7b00ff",
-                    "5":"#ff6600","6":"#00ffff","7":"#000000","8":"#888888"
-                }.get(str(val),"#333333")
-                cols[c].markdown(
-                    f"<div class='tile revealed' style='color:{color}'>{txt}</div>",
-                    unsafe_allow_html=True
-                )
-            else:
-                label = "🚩" if (r,c) in flags else ""
-                click = cols[c].button(label or " ", key=f"{r}-{c}")
-                if click:
-                    if st.session_state.flag_mode:
-                        if (r,c) in flags: flags.remove((r,c))
-                        else: flags.add((r,c))
-                    else:
-                        reveal(r,c)
-                    st.rerun()
+    with st.container():
+        st.markdown('<div id="minesweeper">', unsafe_allow_html=True)
+        for r in range(R):
+            cols = st.columns(C)
+            for c in range(C):
+                if (r,c) in vis:
+                    v = board[r][c]
+                    t = "□" if v==0 else str(v)
+                    color = num_color.get(t,"#000")
+                    cols[c].markdown(f"<p style='text-align:center;font-size:20px;font-weight:600;color:{color}'>{t}</p>", unsafe_allow_html=True)
+                else:
+                    label = "⚑" if (r,c) in flg else "■"
+                    if cols[c].button(label, key=f"{r}-{c}"):
+                        if st.session_state.flag:
+                            if (r,c) in flg: flg.remove((r,c))
+                            else: flg.add((r,c))
+                        else:
+                            if not reveal(board, vis, flg, r, c):
+                                st.session_state.last_message = "💥 BOOM — You lost"
+                                st.session_state.last_message_type = "error"
+                                st.session_state.running=False
+                                st.rerun()
+                        st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.session_state.flag_mode = st.checkbox("🚩 Flag Mode (Shift+Click supported)")
+    if opened==safe:
+        st.session_state.last_message = "🎉 YOU WIN!"
+        st.session_state.last_message_type = "success"
+        st.session_state.running=False
+        st.rerun()
 
-    if st.session_state.lost or won:
-        if st.button("Play Again"):
-            st.session_state.running=False
-            st.rerun()
+    if st.button("Restart"):
+        st.session_state.running=False
+        st.rerun()
