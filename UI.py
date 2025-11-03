@@ -48,6 +48,29 @@ h1, h2, h3, h4, h5, h6, p, label, div, span, .stText, .stMarkdown {
   color: #0b1a33 !important;
 }
 
+/* Buttons - make text white on dark background */
+button, .stButton > button {
+  color: #ffffff !important;
+  background-color: #2563eb !important;
+  border-color: #1e40af !important;
+}
+
+button:hover, .stButton > button:hover {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+/* Selectbox - make text dark and readable */
+.stSelectbox > div > div {
+  background-color: #ffffff !important;
+  color: #0b1a33 !important;
+  border: 1px solid #b8c3d9 !important;
+}
+
+.stSelectbox label {
+  color: #0b1a33 !important;
+}
+
 .board { display:flex; gap:4px; flex-direction:column; margin-top:10px; }
 .row { display:flex; gap:4px; }
 
@@ -69,32 +92,56 @@ h1, h2, h3, h4, h5, h6, p, label, div, span, .stText, .stMarkdown {
 }
 
 .bomb-hit{
-  animation: boom .15s linear infinite alternate;
+  animation: boom 0.3s linear infinite alternate, bombPulse 0.6s ease-out;
 }
 
 @keyframes boom{
-  from{ background:#ff4f4f; }
-  to{ background:#ffc8c8; }
+  0% { background:#ff0000; transform: scale(1); }
+  50% { background:#ff6b6b; transform: scale(1.3); }
+  100% { background:#ffcccc; transform: scale(1); }
+}
+
+@keyframes bombPulse{
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.8); }
+  50% { box-shadow: 0 0 20px 10px rgba(255, 0, 0, 0.6); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
 }
 
 .win-celebration{
-  animation: winPulse 0.6s ease-in-out infinite;
+  animation: winPulse 0.8s ease-in-out infinite, winGlow 1.5s ease-in-out infinite;
   position: relative;
 }
 
 @keyframes winPulse{
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
-  50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(46, 204, 113, 0.4); }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes winGlow{
+  0%, 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7), 0 0 0 0 rgba(255, 215, 0, 0.5); }
+  50% { box-shadow: 0 0 30px 15px rgba(46, 204, 113, 0.6), 0 0 40px 20px rgba(255, 215, 0, 0.4); }
 }
 
 .lose-shake{
-  animation: shake 0.5s ease-in-out;
+  animation: shake 0.6s ease-in-out, explode 0.8s ease-out;
 }
 
 @keyframes shake{
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-10px) rotate(-2deg); }
-  75% { transform: translateX(10px) rotate(2deg); }
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10% { transform: translateX(-15px) rotate(-3deg); }
+  20% { transform: translateX(15px) rotate(3deg); }
+  30% { transform: translateX(-12px) rotate(-2deg); }
+  40% { transform: translateX(12px) rotate(2deg); }
+  50% { transform: translateX(-8px) rotate(-1deg); }
+  60% { transform: translateX(8px) rotate(1deg); }
+  70% { transform: translateX(-5px) rotate(0deg); }
+  80% { transform: translateX(5px) rotate(0deg); }
+}
+
+@keyframes explode{
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.5) contrast(1.2); }
+  100% { filter: brightness(1); }
 }
 
 .confetti{
@@ -225,9 +272,16 @@ else:
 
     if st.session_state.lost:
         st.markdown("""
-        <div style='padding:15px;background:#fee;border:2px solid #f44;border-radius:8px;text-align:center;font-size:20px;font-weight:700;color:#d00;'>
-            💥 BOOM! Game Over
+        <div class='lose-message' style='padding:20px;background:linear-gradient(135deg, #fee 0%, #fcc 100%);border:3px solid #f44;border-radius:12px;text-align:center;font-size:28px;font-weight:900;color:#c00;text-shadow:2px 2px 4px rgba(0,0,0,0.2);animation:loseMessage 1s ease-in-out;'>
+            💥💥💥 BOOM! GAME OVER 💥💥💥
         </div>
+        <style>
+        @keyframes loseMessage{
+          0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+          50% { transform: scale(1.15) rotate(5deg); }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        </style>
         """, unsafe_allow_html=True)
         if st.button("Play Again"):
             st.session_state.running=False
@@ -235,25 +289,36 @@ else:
 
     elif won:
         st.markdown("""
-        <div id='win-message' style='padding:15px;background:#efe;border:2px solid #4f4;border-radius:8px;text-align:center;font-size:24px;font-weight:700;color:#060;animation:winPulse 0.6s ease-in-out infinite;'>
-            🎉 YOU WIN! 🎉
+        <div id='win-message' style='padding:25px;background:linear-gradient(135deg, #efe 0%, #dfd 100%);border:4px solid #4f4;border-radius:15px;text-align:center;font-size:32px;font-weight:900;color:#060;text-shadow:2px 2px 6px rgba(0,200,0,0.3);animation:winMessage 1.2s ease-out, winPulseText 1.5s ease-in-out infinite 1.2s;'>
+            🎉🎉🎉 YOU WIN! 🎉🎉🎉
         </div>
+        <style>
+        @keyframes winMessage{
+          0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+          60% { transform: scale(1.2) rotate(5deg); }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes winPulseText{
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        </style>
         <script>
-        // Confetti celebration effect
-        const colors = ['#ffd700','#ff6b6b','#4ecdc4','#45b7d1','#f7b731','#5f27cd'];
-        for(let i=0; i<60; i++){
+        // Enhanced confetti celebration effect
+        const colors = ['#ffd700','#ff6b6b','#4ecdc4','#45b7d1','#f7b731','#5f27cd','#ff1744','#00e676'];
+        for(let i=0; i<80; i++){
             const piece = document.createElement('div');
             piece.className = 'confetti-piece';
             const left = Math.random()*100;
-            const drift = (Math.random()-0.5)*200;
             piece.style.left = left + '%';
             piece.style.background = colors[Math.floor(Math.random()*colors.length)];
-            piece.style.animationDelay = Math.random()*2 + 's';
+            piece.style.animationDelay = Math.random()*1.5 + 's';
             piece.style.animationDuration = (2 + Math.random()*2) + 's';
-            piece.style.setProperty('--drift', drift/100);
             piece.style.top = '-10px';
+            piece.style.width = (6 + Math.random()*6) + 'px';
+            piece.style.height = (6 + Math.random()*6) + 'px';
             document.body.appendChild(piece);
-            setTimeout(() => piece.remove(), 5000);
+            setTimeout(() => piece.remove(), 6000);
         }
         </script>
         """, unsafe_allow_html=True)
