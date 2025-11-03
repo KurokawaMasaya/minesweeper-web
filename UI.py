@@ -6,6 +6,7 @@ import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
 import gspread
+from gspread.exceptions import SpreadsheetNotFound, APIError
 
 # ===== Google Sheets =====
 def get_sheet():
@@ -24,7 +25,24 @@ def get_sheet():
                 "https://www.googleapis.com/auth/drive"]
     )
     client = gspread.authorize(creds)
-    return client.open("Minesweeper Scores").sheet1
+    title = "Minesweeper Scores"
+    try:
+        return client.open(title).sheet1
+    except SpreadsheetNotFound:
+        # Create the spreadsheet if it doesn't exist yet and add headers
+        sh = client.create(title)
+        ws = sh.sheet1
+        ws.append_row(["Name","Difficulty","Result","Time","Timestamp"])
+        return ws
+    except APIError:
+        # Most common cause: the sheet exists under your account, but the
+        # service account doesn't have access to it. Show an actionable hint.
+        service_email = service_info.get("client_email") if 'service_info' in locals() else None
+        hint = "Share the Google Sheet with your service account email"
+        if service_email:
+            hint += f": {service_email}"
+        st.error(hint)
+        raise
 
 def add_score(name, diff, result, elapsed):
     sheet = get_sheet()
