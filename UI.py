@@ -94,9 +94,13 @@ h1 {{
   border-color: #333 !important;
   transform: translateY(-2px);
 }}
-#minesweeper button:active {{ 
+#minesweeper button:active {{
   background: #1a1a1a !important;
   transform: translateY(0);
+}}
+.flagged-button {{
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
 }}
 
 .revealed-cell {{
@@ -255,13 +259,24 @@ else:
         "5":"#8C2F39","6":"#00796B","7":"#333333","8":"#757575"
     }
 
+    # Check win condition first and reveal all tiles if won
+    if opened==safe and not st.session_state.won:
+        st.session_state.won = True
+        for r in range(R):
+            for c in range(C):
+                vis.add((r, c))
+        st.session_state.last_message = "🎉 YOU WIN!"
+        st.session_state.last_message_type = "success"
+        st.session_state.running=False
+        st.rerun()
+
     with st.container():
         st.markdown('<div id="minesweeper">', unsafe_allow_html=True)
         for r in range(R):
             cols = st.columns(C)
             for c in range(C):
-                # Show all tiles if game is over (won or lost)
-                if (r,c) in vis or st.session_state.lost or st.session_state.won:
+                # Show all tiles if game is over (won or lost), otherwise show only revealed ones
+                if st.session_state.lost or st.session_state.won or (r,c) in vis:
                     v = board[r][c]
                     t = "💣" if v==-1 else ("□" if v==0 else str(v))
                     color = num_color.get(t,"#e5e5e7")
@@ -270,8 +285,8 @@ else:
                         unsafe_allow_html=True
                     )
                 else:
-                    label = "⚑" if (r,c) in flg else ""
-                    if cols[c].button(label, key=f"{r}-{c}"):
+                    # Empty buttons - flags tracked but not visually shown on tile
+                    if cols[c].button("", key=f"{r}-{c}"):
                         if st.session_state.flag:
                             if (r,c) in flg: flg.remove((r,c))
                             else: flg.add((r,c))
@@ -288,17 +303,6 @@ else:
                                 st.rerun()
                         st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-
-    if opened==safe:
-        # Reveal all tiles when win
-        st.session_state.won = True
-        for r in range(R):
-            for c in range(C):
-                vis.add((r, c))
-        st.session_state.last_message = "🎉 YOU WIN!"
-        st.session_state.last_message_type = "success"
-        st.session_state.running=False
-        st.rerun()
 
     if st.button("Restart"):
         st.session_state.running=False
