@@ -252,7 +252,7 @@ else:
                         unsafe_allow_html=True
                     )
                 else:
-                    label = "⚑" if (r,c) in flg else "■"
+                    label = "⚑" if (r,c) in flg else ""
                     if cols[c].button(label, key=f"{r}-{c}"):
                         if st.session_state.flag:
                             if (r,c) in flg: flg.remove((r,c))
