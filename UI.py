@@ -7,13 +7,10 @@ import json
 from google.oauth2.service_account import Credentials
 import gspread
 
-service_info = json.loads(st.secrets["GSPREAD_SERVICE_ACCOUNT"])
-creds = Credentials.from_service_account_info(service_info)
-client = gspread.authorize(creds)
-sheet = client.open("Minesweeper Scores").sheet1
 # ===== Google Sheets =====
 def get_sheet():
-    service_info = json.loads(st.secrets["GSPREAD_SERVICE_ACCOUNT"])  
+    raw_secret = st.secrets["GSPREAD_SERVICE_ACCOUNT"]
+    service_info = json.loads(raw_secret) if isinstance(raw_secret, str) else dict(raw_secret)
     creds = Credentials.from_service_account_info(
         service_info,
         scopes=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
