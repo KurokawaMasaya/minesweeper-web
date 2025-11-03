@@ -8,9 +8,27 @@ from google.oauth2.service_account import Credentials
 import gspread
 
 # ===== Google Sheets =====
-def get_sheet():
+def _load_service_info():
     raw_secret = st.secrets["GSPREAD_SERVICE_ACCOUNT"]
-    service_info = json.loads(raw_secret) if isinstance(raw_secret, str) else dict(raw_secret)
+    if isinstance(raw_secret, dict):
+        return dict(raw_secret)
+    if isinstance(raw_secret, str):
+        try:
+            # If user stored JSON string in secrets, parse it
+            return json.loads(raw_secret)
+        except Exception as exc:
+            # Provide a clear, actionable error about how to format secrets
+            st.error(
+                "Invalid GSPREAD_SERVICE_ACCOUNT JSON in secrets. Either: "
+                "1) store it as a TOML table under [GSPREAD_SERVICE_ACCOUNT], or "
+                "2) if storing as a JSON string, ensure the private_key uses \\n escapes."
+            )
+            raise exc
+    # Any other type is unsupported
+    raise ValueError("GSPREAD_SERVICE_ACCOUNT secret must be a dict/table or JSON string.")
+
+def get_sheet():
+    service_info = _load_service_info()
     creds = Credentials.from_service_account_info(
         service_info,
         scopes=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
