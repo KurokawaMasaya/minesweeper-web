@@ -1,103 +1,64 @@
 import streamlit as st
 import random
-import time
-import datetime
-import pandas as pd
-import json
-from google.oauth2.service_account import Credentials
-import gspread
-from gspread.exceptions import SpreadsheetNotFound, APIError
-
-# ===== Google Sheets =====
-def get_sheet():
-    # 既支持 [GSPREAD_SERVICE_ACCOUNT] TOML 表（写法A），也支持三引号JSON字符串（写法B）
-    raw = st.secrets["GSPREAD_SERVICE_ACCOUNT"]
-    if isinstance(raw, str):
-        # 三引号 JSON 字符串
-        service_info = json.loads(raw)
-    else:
-        # TOML 表 -> dict
-        service_info = dict(raw)
-
-    creds = Credentials.from_service_account_info(
-        service_info,
-        scopes=["https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive"]
-    )
-    client = gspread.authorize(creds)
-    title = "Minesweeper Scores"
-    # Prefer opening by Sheet ID if provided in secrets; this avoids title
-    # collisions and access quirks across drives.
-    sheet_id = st.secrets.get("1jlmbrSL21Kyvvh4ZRqAMjSCQWURRKk4e0ZnUTJzpJ2k")
-    sheet_url = st.secrets.get("https://docs.google.com/spreadsheets/d/1jlmbrSL21Kyvvh4ZRqAMjSCQWURRKk4e0ZnUTJzpJ2k/edit?gid=0#gid=0")
-    if not sheet_id and sheet_url and isinstance(sheet_url, str):
-        # Extract the ID segment between /d/ and the next /
-        try:
-            sheet_id = sheet_url.split("/d/")[1].split("/")[0]
-        except Exception:
-            pass
-    try:
-        if sheet_id:
-            return client.open_by_key(str(sheet_id)).sheet1
-        return client.open(title).sheet1
-    except SpreadsheetNotFound:
-        # Create the spreadsheet if it doesn't exist yet and add headers
-        sh = client.create(title)
-        ws = sh.sheet1
-        ws.append_row(["Name","Difficulty","Result","Time","Timestamp"])
-        return ws
-    except APIError:
-        # Fallback: create sheet if opening by title failed due to Drive list restrictions
-        try:
-            sh = client.create(title)
-            ws = sh.sheet1
-            ws.append_row(["Name","Difficulty","Result","Time","Timestamp"])
-            return ws
-        except Exception:
-            # Most common cause: the sheet exists under your account, but the
-            # service account doesn't have access to it. Show an actionable hint.
-            service_email = service_info.get("client_email") if 'service_info' in locals() else None
-            hint = "Share the Google Sheet with your service account email"
-            if service_email:
-                hint += f": {service_email}"
-            st.error(hint)
-            raise
-
-def add_score(name, diff, result, elapsed):
-    sheet = get_sheet()
-    sheet.append_row([name, diff, result, elapsed, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
 
 st.set_page_config(page_title="Minesweeper", layout="centered")
 
-# ===== CSS =====
+# ================= CSS =================
 st.markdown("""
 <style>
+
 html, body, .stApp {
     background-color: #ffffff !important;
     color: #000000 !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+
+/* ====== Sweep cell button style ====== */
 #minesweeper button {
     background-color: #f5f6f7 !important;
     border: 1px solid #d1d1d1 !important;
     border-radius: 6px !important;
-    height: 36px !important; width: 36px !important;
-    font-size: 18px !important; font-weight: 600 !important;
+    color: #000000 !important;
+    height: 36px !important;
+    width: 36px !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    padding: 0 !important;
+    cursor: pointer;
 }
+#minesweeper button:hover {
+    background-color: #e9ebed !important;
+    border-color: #bcbcbc !important;
+}
+#minesweeper button:active {
+    background-color: #dcdedf !important;
+    border-color: #a0a0a0 !important;
+}
+
+/* ====== Start / Restart buttons ====== */
 div.stButton > button {
-    background-color: #e8f0fe !important; color: #1a73e8 !important;
-    border: 1px solid #b0c7ff !important; font-weight: 600 !important;
+    background-color: #e8f0fe !important;
+    color: #1a73e8 !important;
+    border: 1px solid #b0c7ff !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
 }
 div.stButton > button:hover {
     background-color: #dce7ff !important;
+    border-color: #8bb2ff !important;
 }
+
+/* ====== Checkbox (Flag Mode) text ====== */
 div[data-testid="stCheckbox"] label {
-    color: #d93025 !important; font-weight: 700 !important;
+    color: #d93025 !important; /* red */
+    font-weight: 700 !important;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
-# ===== Minesweeper Logic =====
+# ================= Minesweeper logic =================
+
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -106,18 +67,23 @@ def neighbors(r, c, R, C):
             if 0 <= rr < R and 0 <= cc < C:
                 yield rr, cc
 
-def init_board(R, C): 
-    return [[0]*C for _ in range(R)]
+def init_board(R, C): return [[0]*C for _ in range(R)]
 
 def place(board, mines):
     R, C = len(board), len(board[0])
-    mines = max(0, min(mines, R*C - 1))
-    cells = [(r,c) for r in range(R) for c in range(C)]
-    mine_pos = set(random.sample(cells, mines))
-    for r,c in mine_pos:
+    # Ensure we never request more mines than available cells - 1
+    mines = max(0, min(mines, R * C - 1))
+    # Sample unique positions to avoid potential infinite loops
+    all_cells = [(r, c) for r in range(R) for c in range(C)]
+    mine_positions = set(random.sample(all_cells, mines)) if mines > 0 else set()
+
+    # Place mines
+    for r, c in mine_positions:
         board[r][c] = -1
-    for r,c in mine_pos:
-        for nr,nc in neighbors(r,c,R,C):
+
+    # Update adjacent counts
+    for r, c in mine_positions:
+        for nr, nc in neighbors(r, c, R, C):
             if board[nr][nc] != -1:
                 board[nr][nc] += 1
 
@@ -140,107 +106,98 @@ def reveal(board, vis, flg, r, c):
 
 def start(R,C,M):
     b = init_board(R,C)
-    M = max(0,min(M,R*C-1))
+    # Clamp M defensively in case the caller passes too many mines
+    M = max(0, min(M, R * C - 1))
     place(b,M)
-    st.session_state.board=b
+    st.session_state.board = b
     st.session_state.revealed=set()
     st.session_state.flags=set()
     st.session_state.rows=R
     st.session_state.cols=C
     st.session_state.mines=M
     st.session_state.running=True
-    st.session_state.start_time=time.time()
 
-# ===== State =====
 if "running" not in st.session_state: st.session_state.running=False
 if "flag" not in st.session_state: st.session_state.flag=False
+if "last_message" not in st.session_state: st.session_state.last_message=None
+if "last_message_type" not in st.session_state: st.session_state.last_message_type=None
 
-# ===== Tabs =====
-tab_game, tab_board = st.tabs(["💣 Game", "🏆 Leaderboard"])
+# ================= UI =================
+st.title("Minesweeper")
 
-# ===== GAME TAB =====
-with tab_game:
-    st.title("Minesweeper")
-
-    if not st.session_state.running:
-        name = st.text_input("Player name", "Player")
-        st.session_state.player = name
-
-        R = st.slider("Rows",5,20,10)
-        C = st.slider("Columns",5,20,10)
-        diff = st.selectbox("Difficulty",["Easy","Medium","Hard"])
-        M = max(1, int(R*C*{"Easy":.1,"Medium":.2,"Hard":.3}[diff]))
-        st.session_state.diff = diff
-
-        if st.button("Start Game"):
-            start(R,C,M)
-            st.rerun()
+# Show one-time game result notices
+if st.session_state.last_message:
+    if st.session_state.last_message_type == "success":
+        st.success(st.session_state.last_message)
     else:
-        board = st.session_state.board
-        vis   = st.session_state.revealed
-        flg   = st.session_state.flags
-        R,C,M = st.session_state.rows,st.session_state.cols,st.session_state.mines
+        st.error(st.session_state.last_message)
+    st.session_state.last_message = None
+    st.session_state.last_message_type = None
 
-        # === TIMER (Step 4) ===
-        elapsed = time.time() - st.session_state.start_time
-        st.write(f"⏱ Time: **{elapsed:.1f}s**")
+if not st.session_state.running:
+    R = st.slider("Rows",5,20,10)
+    C = st.slider("Columns",5,20,10)
+    diff = st.selectbox("Difficulty",["Easy","Medium","Hard"])
+    M = max(1, int(R*C*{"Easy":.1,"Medium":.2,"Hard":.3}[diff]))
 
-        left,right = st.columns([1,9])
-        with left: st.checkbox("", key="flag")
-        with right: st.markdown("**Flag Mode**", unsafe_allow_html=True)
+    if st.button("Start Game"):
+        start(R,C,M)
+        st.rerun()
 
-        safe = R*C-M
-        opened=sum((r,c) in vis for r in range(R) for c in range(C) if board[r][c]!=-1)
-        st.write(f"Revealed {opened}/{safe} | Flags {len(flg)} | Mines {M}")
+else:
+    board = st.session_state.board
+    vis   = st.session_state.revealed
+    flg   = st.session_state.flags
+    R     = st.session_state.rows
+    C     = st.session_state.cols
+    M     = st.session_state.mines
 
-        numc = {"1":"#1A73E8","2":"#188038","3":"#D93025","4":"#3457D5","5":"#8C2F39","6":"#00796B","7":"#333","8":"#777"}
+    left_col, right_col = st.columns([1, 10])
+    with left_col:
+        st.checkbox("", key="flag")
+    with right_col:
+        st.markdown("<span style='color:#d93025;font-weight:700'>Flag Mode</span>", unsafe_allow_html=True)
 
-        with st.container():
-            st.markdown('<div id="minesweeper">', unsafe_allow_html=True)
-            for r in range(R):
-                row = st.columns(C)
-                for c in range(C):
-                    if (r,c) in vis:
-                        v = board[r][c]
-                        t="□" if v==0 else str(v)
-                        color=numc.get(t,"#000")
-                        row[c].markdown(f"<p style='text-align:center;font-size:20px;font-weight:600;color:{color}'>{t}</p>",unsafe_allow_html=True)
-                    else:
-                        label="⚑" if (r,c) in flg else "■"
-                        if row[c].button(label, key=f"{r}-{c}"):
-                            if st.session_state.flag:
-                                if (r,c) in flg: flg.remove((r,c))
-                                else: flg.add((r,c))
-                            else:
-                                ok=reveal(board,vis,flg,r,c)
-                                if not ok:
-                                    # === FAIL: write result (Step 5) ===
-                                    add_score(st.session_state.player, st.session_state.diff, "Lose", round(elapsed,2))
-                                    st.error("💥 BOOM! You lost")
-                                    st.session_state.running=False
-                                    st.rerun()
-                            st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+    safe = R*C-M
+    opened = sum((r,c) in vis for r in range(R) for c in range(C) if board[r][c]!=-1)
+    st.write(f"Revealed {opened}/{safe} | Flags {len(flg)} | Mines {M}")
 
-        # Win condition
-        if opened==safe:
-            add_score(st.session_state.player, st.session_state.diff, "Win", round(elapsed,2))
-            st.success("🎉 YOU WIN!")
-            st.session_state.running=False
-            st.rerun()
+    num_color = {
+        "1":"#1A73E8","2":"#188038","3":"#D93025","4":"#3457D5",
+        "5":"#8C2F39","6":"#00796B","7":"#333333","8":"#757575"
+    }
 
-        if st.button("Restart"):
-            st.session_state.running=False
-            st.rerun()
+    with st.container():
+        st.markdown('<div id="minesweeper">', unsafe_allow_html=True)
+        for r in range(R):
+            cols = st.columns(C)
+            for c in range(C):
+                if (r,c) in vis:
+                    v = board[r][c]
+                    t = "□" if v==0 else str(v)
+                    color = num_color.get(t,"#000")
+                    cols[c].markdown(f"<p style='text-align:center;font-size:20px;font-weight:600;color:{color}'>{t}</p>", unsafe_allow_html=True)
+                else:
+                    label = "⚑" if (r,c) in flg else "■"
+                    if cols[c].button(label, key=f"{r}-{c}"):
+                        if st.session_state.flag:
+                            if (r,c) in flg: flg.remove((r,c))
+                            else: flg.add((r,c))
+                        else:
+                            if not reveal(board, vis, flg, r, c):
+                                st.session_state.last_message = "💥 BOOM — You lost"
+                                st.session_state.last_message_type = "error"
+                                st.session_state.running=False
+                                st.rerun()
+                        st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# ===== LEADERBOARD TAB (Step 6) =====
-with tab_board:
-    st.title("🏆 Leaderboard")
-    sheet = get_sheet()
-    data = sheet.get_all_records()
-    if not data:
-        st.write("No scores recorded yet.")
-    else:
-        df = pd.DataFrame(data)
-        df = df.sort_values(by=["Result","Time"], ascending=[False,True])
-        st.dataframe(df)
+    if opened==safe:
+        st.session_state.last_message = "🎉 YOU WIN!"
+        st.session_state.last_message_type = "success"
+        st.session_state.running=False
+        st.rerun()
+
+    if st.button("Restart"):
+        st.session_state.running=False
+        st.rerun()
