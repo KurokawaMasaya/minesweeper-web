@@ -18,6 +18,34 @@ st.markdown("""
 html,body,.stApp{
   background: #f2f6ff;
   font-family: -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color: #0b1a33 !important;
+}
+
+/* Make all text dark and readable */
+h1, h2, h3, h4, h5, h6, p, label, div, span, .stText, .stMarkdown {
+  color: #0b1a33 !important;
+}
+
+/* Slider labels */
+.stSlider label {
+  color: #0b1a33 !important;
+  font-weight: 600;
+}
+
+/* Selectbox labels */
+.stSelectbox label {
+  color: #0b1a33 !important;
+  font-weight: 600;
+}
+
+/* Regular text */
+.stText {
+  color: #0b1a33 !important;
+}
+
+/* Write outputs */
+.stWrite {
+  color: #0b1a33 !important;
 }
 
 .board { display:flex; gap:4px; flex-direction:column; margin-top:10px; }
