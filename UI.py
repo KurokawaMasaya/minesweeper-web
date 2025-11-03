@@ -218,14 +218,14 @@ else:
     C     = st.session_state.cols
     M     = st.session_state.mines
 
-    # Flag mode indicator
-    if st.session_state.flag:
-        st.markdown('<div class="flag-indicator">🚩 Flag Mode ACTIVE</div>', unsafe_allow_html=True)
-    else:
-        left_col, right_col = st.columns([1, 20])
-        with left_col:
-            st.checkbox("", key="flag")
-        with right_col:
+    # Flag mode toggle - always visible
+    left_col, right_col = st.columns([1, 20])
+    with left_col:
+        st.checkbox("", key="flag")
+    with right_col:
+        if st.session_state.flag:
+            st.markdown('<span class="flag-indicator" style="display:inline-flex;padding:4px 12px;margin-left:0;">🚩 Flag Mode ACTIVE</span>', unsafe_allow_html=True)
+        else:
             st.markdown("<span style='color:#666;font-weight:600'>Toggle Flag Mode</span>", unsafe_allow_html=True)
 
     # Status bar with pills
