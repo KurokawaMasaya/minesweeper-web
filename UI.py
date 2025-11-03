@@ -3,59 +3,70 @@ import random
 
 st.set_page_config(page_title="Minesweeper", layout="centered")
 
-# ================= CSS =================
-st.markdown("""
+# ============== Theme ==============
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
+
+def apply_theme(dark: bool):
+    bg_grad = "linear-gradient(135deg,#f8fbff 0%,#eef3ff 50%,#e9f7ff 100%)" if not dark else "linear-gradient(135deg,#0b1020 0%,#111831 50%,#0f1a2b 100%)"
+    text = "#0b1a33" if not dark else "#e6eefc"
+    card_bg = "rgba(255,255,255,0.75)" if not dark else "rgba(17,26,49,0.55)"
+    border = "#d7e3ff" if not dark else "#2a3a5e"
+    tile_bg = "#f5f7fb" if not dark else "#162343"
+    tile_border = "#d6dbe8" if not dark else "#20325a"
+    primary = "#1a73e8"
+
+    st.markdown(f"""
 <style>
-
-html, body, .stApp {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-/* ====== Sweep cell button style ====== */
-#minesweeper button {
-    background-color: #f5f6f7 !important;
-    border: 1px solid #d1d1d1 !important;
-    border-radius: 6px !important;
-    color: #000000 !important;
-    height: 36px !important;
-    width: 36px !important;
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    padding: 0 !important;
-    cursor: pointer;
-}
-#minesweeper button:hover {
-    background-color: #e9ebed !important;
-    border-color: #bcbcbc !important;
-}
-#minesweeper button:active {
-    background-color: #dcdedf !important;
-    border-color: #a0a0a0 !important;
-}
-
-/* ====== Start / Restart buttons ====== */
-div.stButton > button {
-    background-color: #e8f0fe !important;
-    color: #1a73e8 !important;
-    border: 1px solid #b0c7ff !important;
-    font-weight: 600 !important;
-    border-radius: 6px !important;
-}
-div.stButton > button:hover {
-    background-color: #dce7ff !important;
-    border-color: #8bb2ff !important;
-}
-
-/* ====== Checkbox (Flag Mode) text ====== */
-div[data-testid="stCheckbox"] label {
-    color: #d93025 !important; /* red */
-    font-weight: 700 !important;
-}
-
+:root {{
+  --text: {text};
+  --card-bg: {card_bg};
+  --border: {border};
+  --tile-bg: {tile_bg};
+  --tile-border: {tile_border};
+  --primary: {primary};
+}}
+html, body, .stApp {{
+  background: {bg_grad} !important;
+  color: var(--text) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}}
+.game-card {{
+  background: var(--card-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}}
+.status-bar {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }}
+.pill {{
+  display:inline-flex; align-items:center; gap:6px; padding:6px 10px;
+  border: 1px solid var(--border); border-radius:999px; background: var(--tile-bg);
+  color: var(--text); font-weight:700; font-size: 13px;
+}}
+#minesweeper button {{
+  background-color: var(--tile-bg) !important;
+  border: 1px solid var(--tile-border) !important;
+  border-radius: 8px !important;
+  height: 36px !important; width: 36px !important;
+  font-size: 18px !important; font-weight: 700 !important; color: var(--text) !important;
+  transition: transform .08s ease, box-shadow .12s ease;
+}}
+#minesweeper button:hover {{ transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.12); }}
+div.stButton > button {{
+  background-color: #e8f0fe !important; color: var(--primary) !important;
+  border: 1px solid #b0c7ff !important; font-weight: 700 !important; border-radius: 10px !important;
+}}
+div[data-testid="stCheckbox"] label {{ color: #d93025 !important; font-weight: 800 !important; }}
 </style>
 """, unsafe_allow_html=True)
+
+apply_theme(st.session_state.dark_mode)
+
+# ================= CSS =================
+st.markdown("""<div class='game-card'>""", unsafe_allow_html=True)
 
 # ================= Minesweeper logic =================
 
@@ -123,7 +134,12 @@ if "last_message" not in st.session_state: st.session_state.last_message=None
 if "last_message_type" not in st.session_state: st.session_state.last_message_type=None
 
 # ================= UI =================
-st.title("Minesweeper")
+top_left, top_right = st.columns([6,2])
+with top_left:
+    st.title("💣 Minesweeper")
+with top_right:
+    st.toggle("Dark mode", key="dark_mode")
+    apply_theme(st.session_state.dark_mode)
 
 # Show one-time game result notices
 if st.session_state.last_message:
@@ -156,11 +172,19 @@ else:
     with left_col:
         st.checkbox("", key="flag")
     with right_col:
-        st.markdown("<span style='color:#d93025;font-weight:700'>Flag Mode</span>", unsafe_allow_html=True)
+        st.markdown("<span style='color:#d93025;font-weight:800'>Flag Mode</span>", unsafe_allow_html=True)
 
     safe = R*C-M
     opened = sum((r,c) in vis for r in range(R) for c in range(C) if board[r][c]!=-1)
-    st.write(f"Revealed {opened}/{safe} | Flags {len(flg)} | Mines {M}")
+    st.markdown(
+        f"<div class='status-bar'>"
+        f"<span class='pill'>⏱ {sum((r,c) in vis for r in range(R) for c in range(C))} opened</span>"
+        f"<span class='pill'>🚩 {len(flg)} flags</span>"
+        f"<span class='pill'>💣 {M} mines</span>"
+        f"<span class='pill'>✅ {opened}/{safe} safe</span>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
     num_color = {
         "1":"#1A73E8","2":"#188038","3":"#D93025","4":"#3457D5",
@@ -201,3 +225,5 @@ else:
     if st.button("Restart"):
         st.session_state.running=False
         st.rerun()
+
+st.markdown("""</div>""", unsafe_allow_html=True)
