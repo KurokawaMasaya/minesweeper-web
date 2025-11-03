@@ -41,78 +41,67 @@ html, body, .stApp {{
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }}
 .status-bar {{ 
-  display:flex; gap:12px; align-items:center; flex-wrap:wrap; 
-  margin-bottom:16px; padding:12px; 
-  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,248,255,0.9) 100%);
-  border-radius:12px; border: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap; 
+  margin-bottom:12px; padding:8px 12px; 
+  background: #f7fafc;
+  border-radius:8px; border: 1px solid #e2e8f0;
 }}
 .pill {{
-  display:inline-flex; align-items:center; gap:8px; padding:8px 14px;
-  border: none; border-radius:20px; 
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff; font-weight:700; font-size: 13px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  display:inline-flex; align-items:center; gap:6px; padding:6px 12px;
+  border: 1px solid #e2e8f0; border-radius:6px; 
+  background: #ffffff;
+  color: #1a202c; font-weight:600; font-size: 13px;
 }}
-.pill:nth-child(2) {{ background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }}
-.pill:nth-child(3) {{ background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }}
-.pill:nth-child(4) {{ background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }}
 
 .flag-indicator {{
-  display:inline-flex; align-items:center; gap:8px; padding:8px 16px;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  color: white; border-radius:20px; font-weight:700; font-size:14px;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  display:inline-flex; align-items:center; gap:6px; padding:4px 12px;
+  background: #fee2e2;
+  color: #991b1b; border-radius:6px; border: 1px solid #fecaca;
+  font-weight:600; font-size:13px;
 }}
 
 #minesweeper {{
-  background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(240,248,255,0.5) 100%);
-  padding:16px; border-radius:16px; border: 2px solid var(--border);
-  box-shadow: inset 0 2px 8px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.1);
+  background: #ffffff;
+  padding:12px; border-radius:8px; border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }}
 
 #minesweeper button {{
-  background: linear-gradient(135deg, #e8efff 0%, #d6e4ff 100%) !important;
-  border: 2px solid #b8d4ff !important;
-  border-radius: 10px !important;
-  height: 40px !important; width: 40px !important;
-  font-size: 20px !important; font-weight: 800 !important; 
-  color: var(--text) !important;
-  transition: all 0.15s ease !important;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.6);
+  background: #f5f7fb !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  height: 36px !important; width: 36px !important;
+  font-size: 18px !important; font-weight: 700 !important; 
+  color: #1a202c !important;
+  transition: background 0.1s ease !important;
   cursor: pointer !important;
+  padding: 0 !important;
 }}
 #minesweeper button:hover {{ 
-  transform: translateY(-2px) scale(1.05) !important; 
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.8) !important;
-  background: linear-gradient(135deg, #d6e4ff 0%, #c4d9ff 100%) !important;
+  background: #e2e8f0 !important;
+  border-color: #cbd5e0 !important;
 }}
 #minesweeper button:active {{ 
-  transform: translateY(0) scale(0.98) !important;
+  background: #cbd5e0 !important;
 }}
 
 .revealed-cell {{
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
-  border: 2px solid #dee2e6 !important;
-  border-radius: 10px !important;
-  height: 40px !important; width: 40px !important;
+  background: #ffffff !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  height: 36px !important; width: 36px !important;
   display: flex !important; align-items: center !important; justify-content: center !important;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
-  font-size: 20px !important; font-weight: 700 !important;
+  font-size: 18px !important; font-weight: 700 !important;
 }}
 div.stButton > button {{
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: #2563eb !important;
   color: #ffffff !important;
-  border: none !important;
-  font-weight: 700 !important; 
-  border-radius: 12px !important;
-  padding: 10px 24px !important;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
-  transition: all 0.2s ease !important;
+  border: 1px solid #1e40af !important;
+  font-weight: 600 !important; 
+  border-radius: 6px !important;
 }}
 div.stButton > button:hover {{
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4) !important;
+  background: #1d4ed8 !important;
 }}
 div[data-testid="stCheckbox"] label {{ color: #d93025 !important; font-weight: 800 !important; }}
 </style>
