@@ -1,11 +1,16 @@
 import streamlit as st
 import random
-import gspread
-from google.oauth2.service_account import Credentials
 import time
 import datetime
 import pandas as pd
+import json
+from google.oauth2.service_account import Credentials
+import gspread
 
+service_info = json.loads(st.secrets["GSPREAD_SERVICE_ACCOUNT"])
+creds = Credentials.from_service_account_info(service_info)
+client = gspread.authorize(creds)
+sheet = client.open("Minesweeper Scores").sheet1
 # ===== Google Sheets =====
 def get_sheet():
     creds = Credentials.from_service_account_info(
