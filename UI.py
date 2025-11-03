@@ -28,7 +28,14 @@ def get_sheet():
     title = "Minesweeper Scores"
     # Prefer opening by Sheet ID if provided in secrets; this avoids title
     # collisions and access quirks across drives.
-    sheet_id = st.secrets.get("SHEET_ID")
+    sheet_id = st.secrets.get("1jlmbrSL21Kyvvh4ZRqAMjSCQWURRKk4e0ZnUTJzpJ2k")
+    sheet_url = st.secrets.get("https://docs.google.com/spreadsheets/d/1jlmbrSL21Kyvvh4ZRqAMjSCQWURRKk4e0ZnUTJzpJ2k/edit?gid=0#gid=0")
+    if not sheet_id and sheet_url and isinstance(sheet_url, str):
+        # Extract the ID segment between /d/ and the next /
+        try:
+            sheet_id = sheet_url.split("/d/")[1].split("/")[0]
+        except Exception:
+            pass
     try:
         if sheet_id:
             return client.open_by_key(str(sheet_id)).sheet1
