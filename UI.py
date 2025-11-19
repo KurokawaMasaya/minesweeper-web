@@ -1,10 +1,10 @@
 import streamlit as st
 import random
 
-# 页面配置：手绘风
-st.set_page_config(page_title="Tic-Tac-Toe Minesweeper", layout="centered", page_icon="❌")
+# 页面配置
+st.set_page_config(page_title="Contrast Fixed", layout="centered", page_icon="📝")
 
-# ================= 核心逻辑 (保持不变) =================
+# ================= 核心逻辑 (不变) =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -63,11 +63,11 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🖍️ 井字棋风格 CSS =================
+# ================= 🎨 高对比度修复版 CSS =================
 
 st.markdown("""
 <style>
-    /* 1. 引入手写字体 Patrick Hand */
+    /* 1. 字体 */
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
     .stApp {
@@ -75,100 +75,101 @@ st.markdown("""
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
     
-    h1, div, button, span, p {
+    h1, p, label, span, div {
+        color: #2c3e50 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
-        color: #2c3e50;
     }
 
-    /* ============================================
-       关键 CSS：消除缝隙的黑魔法
-       ============================================ */
-
-    /* 1. 强制移除 st.columns 之间的 Gap */
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0 !important; 
+    /* 2. 输入框可见性修复 (白底黑字) */
+    div[data-baseweb="select"] > div, 
+    div[data-baseweb="input"] > div {
+        background-color: #ffffff !important;
+        border: 2px solid #2c3e50 !important;
+        color: #2c3e50 !important;
+        border-radius: 0px !important;
     }
-    
-    /* 2. 移除列的所有 Padding，确保宽度被格子撑满 */
+    div[data-baseweb="select"] span, 
+    div[data-testid="stNumberInput"] input {
+        color: #2c3e50 !important;
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+    }
+    ul[data-baseweb="menu"] { background-color: #fff !important; border: 2px solid #2c3e50 !important; }
+
+    /* 3. 布局修复 (消除缝隙) */
+    div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
     div[data-testid="column"] {
-        width: 42px !important;
-        flex: 0 0 42px !important;
+        width: 40px !important; min-width: 40px !important; flex: 0 0 40px !important;
+        padding: 0 !important; margin: 0 !important;
+    }
+
+    /* ============================================================
+       ✨ 核心修复：高对比度区分 (High Contrast)
+       ============================================================ */
+
+    /* 通用格子设置 (负边距重叠) */
+    button[kind="secondary"], .cell-revealed {
+        width: 40px !important;
+        height: 40px !important;
+        border: 1px solid #2c3e50 !important;
+        border-radius: 0 !important;
         padding: 0 !important;
         margin: 0 !important;
-        min-width: 0 !important;
-    }
-
-    /* 3. 按钮/格子样式：负边距重叠 */
-    
-    /* 通用格子大小 */
-    .grid-cell {
-        width: 42px !important;
-        height: 42px !important;
-        box-sizing: border-box !important; /* 确保边框算在宽度内 */
-    }
-
-    /* 未揭开的按钮 (Secondary) */
-    button[kind="secondary"] {
-        width: 42px !important;
-        height: 42px !important;
-        border-radius: 0 !important; /* 直角 */
-        border: 1px solid #2c3e50 !important; /* 深色网格线 */
-        background-color: transparent !important;
-        color: transparent !important;
-        
-        /* 关键：负边距，让边框重叠，形成单线网格 */
         margin-right: -1px !important;
         margin-bottom: -1px !important;
-        z-index: 1;
-    }
-    button[kind="secondary"]:hover {
-        background-color: rgba(0,0,0,0.05) !important;
-        z-index: 2; /* 悬浮时浮起，防止边框被遮挡 */
+        box-sizing: border-box !important;
+        display: flex; align-items: center; justify-content: center;
     }
 
-    /* 已揭开的格子 */
+    /* A. 未揭开 (按钮) -> 纯白高亮 (#ffffff) */
+    /* 这样看起来像一张张白纸盖在上面 */
+    button[kind="secondary"] {
+        background-color: #ffffff !important; 
+        color: transparent !important;
+        z-index: 2; /* 浮在上面 */
+    }
+    button[kind="secondary"]:hover {
+        background-color: #f0f0f0 !important; /* 悬停微灰 */
+    }
+
+    /* B. 已揭开 (背景) -> 明显的灰色 (#dcdcdc) */
+    /* 这样看起来像纸被揭开了，露出了底色，形成凹陷感 */
     .cell-revealed {
-        width: 42px; height: 42px;
-        display: flex; align-items: center; justify-content: center;
-        border: 1px solid #2c3e50;
-        background-color: rgba(0,0,0,0.02);
+        background-color: #dcdcdc !important; 
+        color: #2c3e50;
         font-size: 24px;
         font-weight: bold;
         cursor: default;
-        
-        /* 同样使用负边距重叠 */
-        margin-right: -1px;
-        margin-bottom: -1px;
-        box-sizing: border-box;
+        z-index: 1; /* 沉在下面 */
+    }
+    
+    /* 炸弹背景加深 */
+    .cell-bomb-hit {
+        background-color: #e74c3c !important; /* 红色 */
+        color: white !important;
     }
 
-    /* 4. 外层大边框 (包裹整个棋盘) */
-    .board-wrapper {
+    /* ============================================================ */
+
+    .board-wrap {
         display: inline-block;
         border-top: 2px solid #2c3e50;
         border-left: 2px solid #2c3e50;
-        /* 右下边框由里面的格子溢出撑开，或者这里补齐 */
-        padding: 0;
-        line-height: 0; /* 消除行高导致的垂直间隙 */
+        padding: 0; line-height: 0;
     }
 
-    /* ============================================ */
-
-    /* 功能按钮 (Start/Restart) - 手绘圆角 */
     button[kind="primary"] {
         background: transparent !important;
         color: #2c3e50 !important;
-        border: 2px solid #2c3e50 !important;
+        border: 3px solid #2c3e50 !important;
         border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px !important;
-        font-size: 20px !important;
+        font-size: 18px !important;
     }
-    button[kind="primary"]:hover {
-        background-color: #fff !important;
-    }
+    button[kind="primary"]:hover { background: #2c3e50 !important; color: #fff !important; }
 
-    /* 颜色 */
-    .c1 { color: #2980b9; } .c2 { color: #27ae60; } .c3 { color: #c0392b; }
-    .bomb-drawn { color: #000; font-size: 30px; line-height: 40px; }
+    .c1 { color: #2980b9; } .c2 { color: #27ae60; } .c3 { color: #c0392b; } .c4{color:#8e44ad;}
+    .bomb { color: #000; font-size: 28px; }
     
 </style>
 """, unsafe_allow_html=True)
@@ -177,9 +178,8 @@ st.markdown("""
 
 st.title("Minesweeper")
 
-# 1. 设置
 if not st.session_state.running:
-    st.markdown("### ✏️ Setup")
+    st.markdown("### ✏️ Game Setup")
     c1, c2, c3 = st.columns(3)
     with c1: R = st.number_input("Rows", 5, 20, 10)
     with c2: C = st.number_input("Cols", 5, 20, 10)
@@ -188,20 +188,18 @@ if not st.session_state.running:
         rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
     
     M = max(1, int(R*C*rate))
-    st.write(f"Mines: **{M}**")
+    st.write(f"**Mines:** {M}")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button("Start Game", type="primary", use_container_width=True):
+    if st.button("START GAME", type="primary", use_container_width=True):
         start(R, C, M)
         st.rerun()
 
-# 2. 游戏界面
 else:
-    # 顶部状态
     c1, c2, c3 = st.columns([1.5, 2, 1.5])
     with c2:
         left = st.session_state.mines - len(st.session_state.flags)
-        st.markdown(f"<div style='text-align:center; font-size:24px;'>{left} 💣 Left</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center; font-size:24px; font-weight:bold;'>{left} 💣</div>", unsafe_allow_html=True)
     with c1:
         mode = "🚩 Flag" if st.session_state.flag else "⛏️ Dig"
         if st.button(mode, type="primary", use_container_width=True):
@@ -213,26 +211,20 @@ else:
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-
+    
     if st.session_state.lost: st.markdown("<h2 style='color:#c0392b;text-align:center'>Game Over!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='color:#27ae60;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
-    # === 渲染井字棋盘 ===
-    
-    # 使用 Flexbox 居中
+    # === 渲染网格 ===
     st.markdown("<div style='display:flex; justify-content:center;'>", unsafe_allow_html=True)
-    
-    # 外层包裹器：负责左上边框
-    st.markdown("<div class='board-wrapper'>", unsafe_allow_html=True)
+    st.markdown("<div class='board-wrap'>", unsafe_allow_html=True)
     
     board = st.session_state.board
     vis = st.session_state.revealed
     flg = st.session_state.flags
     
     for r in range(st.session_state.rows):
-        # Streamlit 的 columns 默认有 Gap，CSS 已强制设为 0
         cols = st.columns(st.session_state.cols)
-        
         for c in range(st.session_state.cols):
             with cols[c]:
                 key = f"{r}_{c}"
@@ -244,8 +236,9 @@ else:
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        # 手绘风的炸弹：X
-                        st.markdown("<div class='cell-revealed bomb-drawn'>X</div>", unsafe_allow_html=True)
+                        # 踩到的雷红色高亮，没踩到的只是显示
+                        bg_cls = "cell-bomb-hit" if (is_rev and val == -1) else ""
+                        st.markdown(f"<div class='cell-revealed {bg_cls} bomb'>*</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
@@ -253,10 +246,9 @@ else:
                 
                 # B. 按钮 (未揭开)
                 else:
-                    # 用 P 代表旗子
                     label = "P" if is_flg else " "
-                    
                     if not end:
+                        # 按钮背景强制为白色，对比灰色已揭开区域
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
                                 if is_flg: flg.remove((r,c))
@@ -267,8 +259,8 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 游戏结束后的未揭开区域
-                        st.markdown(f"<div class='cell-revealed' style='color:#ccc'>{label}</div>", unsafe_allow_html=True)
+                        # 游戏结束后，未揭开的显示为淡白色
+                        st.markdown(f"<div class='cell-revealed' style='background:#fff; color:#ccc'>{label}</div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True) # End board-wrapper
-    st.markdown("</div>", unsafe_allow_html=True) # End center
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
