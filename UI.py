@@ -2,7 +2,7 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="No Effects Minesweeper", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Static Minesweeper", layout="centered", page_icon="🖍️")
 
 # ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
@@ -66,13 +66,13 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS (去特效死板版) =================
+# ================= 🎨 CSS (全静态死板版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 全局字体和背景 */
+    /* 全局 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
@@ -86,10 +86,10 @@ st.markdown("""
     h1 { text-align: center; }
 
     /* ============================================================
-       🚫 强力去特效区：输入框 & 下拉框 🚫
+       🚫 1. 输入框 & 下拉框容器：完全静态 🚫
        ============================================================ */
     
-    /* 1. 容器基础样式：白底黑框 */
+    /* 容器：白底黑框 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
@@ -97,72 +97,72 @@ st.markdown("""
         border: 2px solid #000000 !important;
         color: #000000 !important;
         border-radius: 4px !important;
-        transition: none !important; /* 禁止动画 */
+        box-shadow: none !important;
     }
 
-    /* 2. 杀掉 Focus/Active 状态的高亮边框和阴影 */
+    /* 杀掉所有 Focus/Active 状态 */
     div[data-baseweb="select"] > div:focus-within,
     div[data-baseweb="input"] > div:focus-within,
     div[data-testid="stNumberInput"] > div:focus-within,
     div[data-baseweb="select"] > div:hover,
-    div[data-baseweb="input"] > div:hover,
-    div[data-testid="stNumberInput"] > div:hover {
-        border-color: #000000 !important; /* 永远是黑框 */
-        box-shadow: none !important;      /* 永远没发光 */
-        background-color: #ffffff !important; /* 永远是白底 */
+    div[data-baseweb="input"] > div:hover {
+        border-color: #000000 !important;
+        background-color: #ffffff !important;
+        box-shadow: none !important;
         outline: none !important;
     }
 
-    /* 3. 输入框内的文字：纯黑 */
+    /* 内部文字：纯黑 */
     input[type="number"], 
     div[data-baseweb="select"] span,
     div[data-testid="stNumberInput"] input {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
-        caret-color: #000000 !important; /* 光标也是黑的 */
+        caret-color: #000000 !important;
         font-weight: bold !important;
         font-size: 18px !important;
         text-align: center;
     }
 
-    /* 4. 下拉箭头：黑色 */
+    /* 下拉箭头：纯黑 */
     div[data-baseweb="select"] svg {
         fill: #000000 !important;
         color: #000000 !important;
     }
 
-    /* 5. 隐藏数字输入框的 +/- 按钮 */
+    /* 隐藏 +/- */
     div[data-testid="stNumberInput"] button {
         display: none !important;
     }
 
-    /* === 下拉菜单弹出层 === */
+    /* ============================================================
+       🚫 2. 下拉菜单选项：绝对静止 (不变色) 🚫
+       ============================================================ */
+    
     ul[data-baseweb="menu"] {
         background-color: #ffffff !important;
         border: 2px solid #000000 !important;
         box-shadow: none !important;
     }
     
-    /* 选项：不管怎么选，都是白底黑字，最多变个灰 */
-    li[data-baseweb="option"] {
-        color: #000000 !important;
-        background-color: #ffffff !important;
+    /* 针对每一个选项 (无论是默认、悬停、还是选中) */
+    li[data-baseweb="option"],
+    li[data-baseweb="option"]:hover,
+    li[data-baseweb="option"]:focus,
+    li[data-baseweb="option"]:active,
+    li[data-baseweb="option"][aria-selected="true"] {
+        background-color: #ffffff !important; /* 永远白底 */
+        color: #000000 !important;            /* 永远黑字 */
         font-weight: bold !important;
     }
     
-    /* 悬停/选中：只变背景为浅灰，文字颜色绝对不动 */
-    li[data-baseweb="option"]:hover,
-    li[data-baseweb="option"][aria-selected="true"] {
-        background-color: #cccccc !important; /* 灰色高亮 */
-        color: #000000 !important;            /* 文字还是黑 */
-    }
-    
-    li[data-baseweb="option"] div {
+    /* 强制内部子元素也变黑 */
+    li[data-baseweb="option"] * {
         color: #000000 !important;
     }
 
     /* ============================================================
-       棋盘样式
+       3. 棋盘样式
        ============================================================ */
     
     div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; justify-content: center !important; }
@@ -184,20 +184,11 @@ st.markdown("""
         color: transparent !important;
         box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
         border: 2px solid #2c3e50 !important;
-        /* 禁止按钮点击变色 */
         transition: none !important;
     }
-    button[kind="secondary"]:hover {
-        background-color: #f0f0f0 !important;
-        border-color: #2c3e50 !important;
-    }
-    button[kind="secondary"]:active, button[kind="secondary"]:focus {
-        background-color: #e0e0e0 !important;
-        border-color: #2c3e50 !important;
-        color: transparent !important;
-        outline: none !important;
-        box-shadow: none !important;
-    }
+    /* 只有轻微的按压反馈，不变色 */
+    button[kind="secondary"]:hover { background-color: #ffffff !important; border-color: #000 !important; }
+    button[kind="secondary"]:active { box-shadow: none !important; transform: translate(1px, 1px); }
 
     /* 已揭开 */
     .cell-revealed {
@@ -215,16 +206,11 @@ st.markdown("""
 
     .cell-bomb { color: #d63031 !important; font-size: 28px !important; line-height: 1; }
     
-    /* 功能按钮 */
+    /* 按钮 */
     button[kind="primary"] {
         background-color: #2c3e50 !important;
         border: 2px solid #000 !important;
         width: 100%;
-        /* 去除选中光圈 */
-        box-shadow: none !important;
-    }
-    button[kind="primary"]:focus {
-        border-color: #000 !important;
         box-shadow: none !important;
     }
     button[kind="primary"] p { color: #fff !important; font-size: 18px !important; }
@@ -285,7 +271,6 @@ else:
             unsafe_allow_html=True)
             
     with c4:
-        # 快速重开
         if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
             cfg = st.session_state.game_config
             start(cfg['R'], cfg['C'], cfg['M'])
@@ -296,7 +281,6 @@ else:
     if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
-    # 渲染网格
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
     board = st.session_state.board
