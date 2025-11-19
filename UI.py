@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Contrast Fixed", layout="centered", page_icon="📝")
+st.set_page_config(page_title="High Contrast Minesweeper", layout="centered", page_icon="📝")
 
-# ================= 核心逻辑 (不变) =================
+# ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -63,11 +63,10 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 高对比度修复版 CSS =================
+# ================= 🎨 CSS 样式 =================
 
 st.markdown("""
 <style>
-    /* 1. 字体 */
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
     .stApp {
@@ -76,100 +75,124 @@ st.markdown("""
     }
     
     h1, p, label, span, div {
-        color: #2c3e50 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
 
-    /* 2. 输入框可见性修复 (白底黑字) */
+    /* ============================================================
+       修复 1: 输入框改为【深色背景 + 白色字体】
+       ============================================================ */
+    
+    /* 覆盖输入框容器 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div {
-        background-color: #ffffff !important;
-        border: 2px solid #2c3e50 !important;
-        color: #2c3e50 !important;
-        border-radius: 0px !important;
+        background-color: #2c3e50 !important; /* 深色底 */
+        border: 2px solid #000 !important;
+        border-radius: 4px !important;
+        color: white !important; /* 白字 */
     }
+
+    /* 覆盖输入框内的文字 */
     div[data-baseweb="select"] span, 
     div[data-testid="stNumberInput"] input {
-        color: #2c3e50 !important;
-        font-family: 'Patrick Hand', cursive, sans-serif !important;
-        font-weight: bold !important;
+        color: #ffffff !important; /* 强制白色 */
         font-size: 18px !important;
+        font-weight: bold !important;
+        -webkit-text-fill-color: #ffffff !important; /* 兼容性强制 */
     }
-    ul[data-baseweb="menu"] { background-color: #fff !important; border: 2px solid #2c3e50 !important; }
+    
+    /* 下拉箭头颜色 */
+    div[data-baseweb="select"] svg {
+        fill: white !important;
+        color: white !important;
+    }
+    
+    /* 下拉菜单选项 */
+    ul[data-baseweb="menu"] {
+        background-color: #2c3e50 !important;
+        color: white !important;
+    }
+    li[data-baseweb="option"] {
+        color: white !important;
+    }
 
-    /* 3. 布局修复 (消除缝隙) */
+    /* Label 颜色 (Rows, Cols, Diff) 保持深色以便在米色背景看清 */
+    div[data-testid="stMarkdownContainer"] p, label {
+        color: #2c3e50 !important;
+        font-weight: bold !important;
+    }
+
+    /* ============================================================
+       修复 2: 游戏格子极高对比度 (黑白灰分明)
+       ============================================================ */
+
+    /* 布局无缝 */
     div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
     div[data-testid="column"] {
         width: 40px !important; min-width: 40px !important; flex: 0 0 40px !important;
         padding: 0 !important; margin: 0 !important;
     }
 
-    /* ============================================================
-       ✨ 核心修复：高对比度区分 (High Contrast)
-       ============================================================ */
-
-    /* 通用格子设置 (负边距重叠) */
+    /* 通用盒子 */
     button[kind="secondary"], .cell-revealed {
-        width: 40px !important;
-        height: 40px !important;
-        border: 1px solid #2c3e50 !important;
+        width: 40px !important; height: 40px !important;
+        border: 1px solid #000 !important; /* 纯黑边框 */
         border-radius: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        margin-right: -1px !important;
-        margin-bottom: -1px !important;
+        padding: 0 !important; margin: 0 !important;
+        margin-right: -1px !important; margin-bottom: -1px !important;
         box-sizing: border-box !important;
         display: flex; align-items: center; justify-content: center;
     }
 
-    /* A. 未揭开 (按钮) -> 纯白高亮 (#ffffff) */
-    /* 这样看起来像一张张白纸盖在上面 */
+    /* A. 未揭开 (按钮) -> 亮白色 + 浮起感 */
     button[kind="secondary"] {
         background-color: #ffffff !important; 
         color: transparent !important;
-        z-index: 2; /* 浮在上面 */
+        z-index: 10;
     }
     button[kind="secondary"]:hover {
-        background-color: #f0f0f0 !important; /* 悬停微灰 */
+        background-color: #f0f0f0 !important;
     }
 
-    /* B. 已揭开 (背景) -> 明显的灰色 (#dcdcdc) */
-    /* 这样看起来像纸被揭开了，露出了底色，形成凹陷感 */
+    /* B. 已揭开 (坑) -> 深灰色 (#999) + 凹陷感 */
+    /* 这个颜色比之前深很多，和白色的对比非常强烈 */
     .cell-revealed {
-        background-color: #dcdcdc !important; 
-        color: #2c3e50;
+        background-color: #999999 !important; 
+        color: white !important; /* 数字变成白色或亮色以便在深灰底阅读 */
         font-size: 24px;
         font-weight: bold;
-        cursor: default;
-        z-index: 1; /* 沉在下面 */
+        z-index: 1;
+        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2); /* 内阴影增加凹陷感 */
     }
     
-    /* 炸弹背景加深 */
-    .cell-bomb-hit {
-        background-color: #e74c3c !important; /* 红色 */
-        color: white !important;
+    /* 炸弹 */
+    .cell-bomb {
+        background-color: #000 !important; /* 炸弹是黑底 */
+        color: red !important;
     }
 
-    /* ============================================================ */
-
+    /* 数字颜色调整 (在深灰底上要亮一点) */
+    .c1 { color: #cbf3f0 !important; text-shadow: 1px 1px 0 #000; } /* 亮青 */
+    .c2 { color: #b5e48c !important; text-shadow: 1px 1px 0 #000; } /* 亮绿 */
+    .c3 { color: #ff99c8 !important; text-shadow: 1px 1px 0 #000; } /* 亮粉 */
+    .c4 { color: #a0c4ff !important; text-shadow: 1px 1px 0 #000; } /* 亮蓝 */
+    
+    /* 外框 */
     .board-wrap {
         display: inline-block;
-        border-top: 2px solid #2c3e50;
-        border-left: 2px solid #2c3e50;
+        border-top: 3px solid #000;
+        border-left: 3px solid #000;
         padding: 0; line-height: 0;
     }
 
+    /* 功能按钮 */
     button[kind="primary"] {
-        background: transparent !important;
-        color: #2c3e50 !important;
-        border: 3px solid #2c3e50 !important;
-        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px !important;
+        background: #2c3e50 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important; 
         font-size: 18px !important;
     }
-    button[kind="primary"]:hover { background: #2c3e50 !important; color: #fff !important; }
-
-    .c1 { color: #2980b9; } .c2 { color: #27ae60; } .c3 { color: #c0392b; } .c4{color:#8e44ad;}
-    .bomb { color: #000; font-size: 28px; }
+    button[kind="primary"]:hover { background: #000 !important; }
     
 </style>
 """, unsafe_allow_html=True)
@@ -179,7 +202,7 @@ st.markdown("""
 st.title("Minesweeper")
 
 if not st.session_state.running:
-    st.markdown("### ✏️ Game Setup")
+    st.markdown("### ✏️ Setup")
     c1, c2, c3 = st.columns(3)
     with c1: R = st.number_input("Rows", 5, 20, 10)
     with c2: C = st.number_input("Cols", 5, 20, 10)
@@ -232,23 +255,20 @@ else:
                 is_flg = (r,c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
-                # A. 显示内容 (已揭开)
+                # A. 已揭开 (深色凹陷)
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        # 踩到的雷红色高亮，没踩到的只是显示
-                        bg_cls = "cell-bomb-hit" if (is_rev and val == -1) else ""
-                        st.markdown(f"<div class='cell-revealed {bg_cls} bomb'>*</div>", unsafe_allow_html=True)
+                        st.markdown("<div class='cell-revealed cell-bomb'>*</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<div class='cell-revealed c{val}'>{val}</div>", unsafe_allow_html=True)
                 
-                # B. 按钮 (未揭开)
+                # B. 未揭开 (亮白浮起)
                 else:
                     label = "P" if is_flg else " "
                     if not end:
-                        # 按钮背景强制为白色，对比灰色已揭开区域
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
                                 if is_flg: flg.remove((r,c))
@@ -259,8 +279,8 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 游戏结束后，未揭开的显示为淡白色
-                        st.markdown(f"<div class='cell-revealed' style='background:#fff; color:#ccc'>{label}</div>", unsafe_allow_html=True)
+                        # 结束后的未揭开区域
+                        st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
