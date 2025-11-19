@@ -2,7 +2,7 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Final Fix 2.0", layout="centered", page_icon="🔨")
+st.set_page_config(page_title="Crayon Minesweeper", layout="centered", page_icon="🖍️")
 
 # ================= 核心逻辑 (不变) =================
 def neighbors(r, c, R, C):
@@ -63,122 +63,109 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 暴力修复 CSS =================
+# ================= 🎨 CSS 样式 =================
 
 st.markdown("""
 <style>
-    /* 引入字体 */
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 全局重置：米色背景，强制黑字 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
     
-    /* 暴力强制所有文本元素为黑色，防止标题隐形 */
-    .stApp h1, .stApp h2, .stApp h3, .stApp p, .stApp div, .stApp span, .stApp label {
-        color: #000000 !important;
+    /* 全局文字颜色 */
+    h1, h2, h3, p, span, div, label, button {
+        color: #2c3e50 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
 
-    /* 2. 修复【开始游戏】按钮文字看不清的问题 */
-    /* 针对 Primary 按钮内部的 p 标签强制设为白色 */
-    button[kind="primary"] p {
-        color: #ffffff !important;
-        font-size: 22px !important;
-        font-weight: bold !important;
-    }
-    button[kind="primary"] {
-        background-color: #2c3e50 !important;
-        border: 3px solid #000 !important;
-        min-height: 50px !important;
-    }
-    button[kind="primary"]:hover {
-        background-color: #000 !important;
-    }
-
-    /* 3. 修复输入框样式 */
+    /* 输入框样式：白底黑字 */
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
         background-color: #fff !important;
-        border: 2px solid #000 !important;
+        border: 2px solid #2c3e50 !important;
         color: #000 !important;
+        border-radius: 4px !important;
     }
-    div[data-testid="stNumberInput"] input { color: #000 !important; }
+    div[data-testid="stNumberInput"] input { color: #000 !important; font-weight:bold;}
 
-    /* ==========================================================
-       4. 终极对齐修复 (The Pixel-Perfect Fix)
-       ========================================================== */
-
-    /* 清除列间距 */
+    /* === 棋盘核心 CSS ===
+       为了保证棋盘无缝，我们必须全局禁用 Gap。
+       但是为了让设置栏分开，我们在Python代码里用了空白列 (Spacer) 
+    */
     div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
+    
+    /* 棋盘列宽固定 */
     div[data-testid="column"] {
-        width: 42px !important; min-width: 42px !important; flex: 0 0 42px !important;
+        min-width: 0 !important; /* 允许变得很窄(用于spacer) */
         padding: 0 !important; margin: 0 !important;
     }
 
-    /* 定义一个标准盒子模型：不管是按钮还是div，必须完全遵守这个物理定律 */
-    /* 按钮 (未揭开) */
-    button[kind="secondary"] {
-        width: 42px !important;
-        height: 42px !important;
-        border: 1px solid #000 !important;
-        border-radius: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        /* 负边距吃掉缝隙 */
-        margin-right: -1px !important;
-        margin-bottom: -1px !important;
-        background-color: #ffffff !important; /* 白纸 */
-        
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+    /* 统一盒子模型 */
+    .unified-box {
+        width: 40px !important; height: 40px !important;
+        box-sizing: border-box !important;
+        border: 1px solid #2c3e50 !important;
+        margin-right: -1px !important; margin-bottom: -1px !important;
+        display: flex; align-items: center; justify-content: center;
         line-height: 1 !important;
+    }
+
+    /* 1. 按钮 (未揭开) - 纯白悬浮 */
+    button[kind="secondary"] {
+        width: 40px !important; height: 40px !important;
+        border: 1px solid #2c3e50 !important;
+        border-radius: 0 !important; padding: 0 !important;
+        margin: 0 !important; margin-right: -1px !important; margin-bottom: -1px !important;
+        background-color: #ffffff !important;
+        color: transparent !important;
         z-index: 10;
     }
+    button[kind="secondary"]:hover { background-color: #f0f0f0 !important; }
 
-    /* Div (已揭开) */
+    /* 2. 已揭开 (深灰凹陷) */
     .cell-revealed {
-        width: 42px !important;
-        height: 42px !important;
-        border: 1px solid #000 !important;
-        border-radius: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        /* 必须和按钮一模一样的负边距 */
-        margin-right: -1px !important;
-        margin-bottom: -1px !important;
-        background-color: #999999 !important; /* 深灰坑 */
+        width: 40px !important; height: 40px !important;
+        border: 1px solid #2c3e50 !important;
+        box-sizing: border-box !important;
+        margin-right: -1px !important; margin-bottom: -1px !important;
         
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        line-height: 1 !important;
-        box-sizing: border-box !important; /* 确保边框计算一致 */
+        background-color: #b2bec3 !important; /* 稍浅一点的灰，看得更清 */
+        color: #fff !important; 
+        font-size: 22px; font-weight: bold;
+        cursor: default; z-index: 1;
         
-        color: #fff !important; /* 坑里的字是白的 */
-        font-size: 24px;
-        font-weight: bold;
-        cursor: default;
+        display: flex; align-items: center; justify-content: center;
     }
-    
-    /* 炸弹 */
-    .cell-bomb { background-color: #000 !important; color: red !important; }
 
-    /* 外框包裹 */
+    /* 3. 炸弹样式 (Crayon Style X) */
+    .cell-bomb {
+        background-color: #b2bec3 !important; /* 背景保持灰色 */
+        color: #d63031 !important; /* 蜡笔红 */
+        font-size: 32px !important; /* 大一点 */
+        font-family: 'Patrick Hand', cursive !important;
+        line-height: 36px !important;
+    }
+
+    /* 开始按钮 */
+    button[kind="primary"] {
+        background-color: #2c3e50 !important;
+        border: 2px solid #000 !important;
+        border-radius: 8px !important;
+    }
+    button[kind="primary"] p { color: #fff !important; font-size: 20px !important; }
+    button[kind="primary"]:hover { background-color: #000 !important; }
+    
+    /* 数字颜色 */
+    .c1 { color: #00cec9 !important; text-shadow: 1px 1px 0 #555; }
+    .c2 { color: #a29bfe !important; text-shadow: 1px 1px 0 #555; }
+    .c3 { color: #ffeaa7 !important; text-shadow: 1px 1px 0 #555; }
+    
     .board-wrap {
         display: inline-block;
-        border-top: 2px solid #000;
-        border-left: 2px solid #000;
+        border-top: 2px solid #2c3e50; border-left: 2px solid #2c3e50;
         line-height: 0;
     }
-
-    /* 数字颜色 */
-    .c1 { color: #cbf3f0 !important; text-shadow: 1px 1px 0 #000; }
-    .c2 { color: #b5e48c !important; text-shadow: 1px 1px 0 #000; }
-    .c3 { color: #ff99c8 !important; text-shadow: 1px 1px 0 #000; }
-    
 </style>
 """, unsafe_allow_html=True)
 
@@ -188,9 +175,14 @@ st.title("Minesweeper")
 
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
-    c1, c2, c3 = st.columns(3)
+    
+    # 【关键修改】使用 5 列布局，中间插入 0.2 比例的空列来强制隔开
+    c1, sp1, c2, sp2, c3 = st.columns([1, 0.2, 1, 0.2, 1.5])
+    
     with c1: R = st.number_input("Rows", 5, 20, 10)
+    with sp1: st.empty() # 空占位
     with c2: C = st.number_input("Cols", 5, 20, 10)
+    with sp2: st.empty() # 空占位
     with c3: 
         diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
         rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
@@ -204,8 +196,9 @@ if not st.session_state.running:
         st.rerun()
 
 else:
-    # 状态栏
-    c1, c2, c3 = st.columns([1.5, 2, 1.5])
+    # 状态栏同样加上 spacer 保持美观
+    c1, sp1, c2, sp2, c3 = st.columns([1.5, 0.2, 2, 0.2, 1.5])
+    
     with c2:
         left = st.session_state.mines - len(st.session_state.flags)
         st.markdown(f"<div style='text-align:center; font-size:24px; font-weight:bold;'>{left} 💣</div>", unsafe_allow_html=True)
@@ -221,8 +214,8 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.session_state.lost: st.markdown("<h2 style='color:#c0392b;text-align:center'>Game Over!</h2>", unsafe_allow_html=True)
-    if st.session_state.won: st.markdown("<h2 style='color:#27ae60;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
+    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! X_X</h2>", unsafe_allow_html=True)
+    if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
     # === 渲染网格 ===
     st.markdown("<div style='display:flex; justify-content:center;'>", unsafe_allow_html=True)
@@ -245,7 +238,8 @@ else:
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        st.markdown("<div class='cell-revealed cell-bomb'>*</div>", unsafe_allow_html=True)
+                        # 炸弹改用红色 X
+                        st.markdown("<div class='cell-revealed cell-bomb'>X</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
@@ -265,7 +259,6 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 结束后的未揭开区域
                         st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
