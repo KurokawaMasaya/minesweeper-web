@@ -1,10 +1,10 @@
 import streamlit as st
 import random
 
-# 页面配置：白底黑字，简约风
-st.set_page_config(page_title="Minesweeper Minimal", layout="centered", page_icon="✏️")
+# 页面配置：手绘风
+st.set_page_config(page_title="Paper Minesweeper", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 (原版 MS.py，完全不动) =================
+# ================= 核心逻辑 (完全保留原版算法) =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -63,181 +63,202 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= ✏️ 数独极简风 CSS =================
+# ================= 🖍️ 蜡笔手绘风 CSS =================
+
 st.markdown("""
 <style>
-    /* 1. 全局背景：护眼纯白 */
+    /* 1. 引入 Google Fonts: Patrick Hand (完美的手写蜡笔字体) */
+    @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+
+    /* 2. 全局样式：米黄色素描纸背景 */
     .stApp {
-        background-color: #ffffff;
-        color: #333333;
-        font-family: 'Courier New', Courier, monospace; /* 打印机字体 */
+        background-color: #fdfcf0; /* 暖色调纸张 */
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+    }
+    
+    h1, h2, h3, p, div, button, span {
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+        color: #2c3e50;
     }
     
     h1 {
-        color: #000;
-        font-weight: bold;
-        border-bottom: 2px solid #000;
+        border-bottom: 3px dashed #2c3e50; /* 虚线下划线 */
         padding-bottom: 10px;
         text-align: center;
-        font-family: 'Courier New', Courier, monospace;
+        font-size: 3rem !important;
     }
 
-    /* 2. 游戏区域外框：像数独的粗边框 */
-    .sudoku-border {
-        border: 3px solid #000000;
-        padding: 5px;
-        display: inline-block;
-        background-color: #000; /* 利用间隙做网格线 */
-    }
-
-    /* 3. 格子按钮 (未揭开)：纯白方块，极细边框 */
-    button[kind="secondary"] {
-        width: 40px !important;
-        height: 40px !important;
-        padding: 0 !important;
-        border: 1px solid #ccc !important; /* 浅灰细线 */
-        border-radius: 0 !important; /* 尖角，不要圆角 */
-        background-color: #ffffff !important;
-        color: transparent !important;
-        transition: background-color 0.2s;
+    /* 3. 核心：井字棋 (Tic-Tac-Toe) 风格网格 */
+    
+    /* 强制消除 Streamlit 所有默认间距 */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0 !important;
+        justify-content: center;
     }
     
-    /* 鼠标悬停：浅灰，像铅笔涂抹 */
-    button[kind="secondary"]:hover {
-        background-color: #f0f0f0 !important;
-        border-color: #999 !important;
-    }
-    
-    /* 4. 功能按钮 (Start/Restart)：极简黑白 */
-    button[kind="primary"] {
-        background-color: #333 !important;
-        color: #fff !important;
-        border: none !important;
-        border-radius: 0 !important;
-        font-family: 'Courier New', monospace !important;
-        font-weight: bold !important;
-        min-width: 100px !important;
-    }
-    button[kind="primary"]:hover {
-        background-color: #000 !important;
-    }
-
-    /* 5. 已揭开的格子：纸张质感 */
-    .cell-paper {
-        width: 40px; height: 40px;
-        display: flex; align-items: center; justify-content: center;
-        background-color: #ffffff; /* 保持纯白 */
-        border: 1px solid #eee; /* 极淡的内部线 */
-        font-weight: bold;
-        font-size: 20px;
-        font-family: 'Courier New', monospace;
-    }
-    
-    /* 布局控制：消除间隙，让格子紧贴 */
     div[data-testid="column"] {
-        width: 40px !important;
+        width: 42px !important;
         flex: unset !important;
-        padding: 0 !important; /* 0间距 */
+        padding: 0 !important;
         margin: 0 !important;
     }
-    div[data-testid="stHorizontalBlock"] {
-        justify-content: center;
-        gap: 0 !important; /* 0间距 */
+
+    /* 通用格子样式 (基础) */
+    .base-cell {
+        width: 42px !important;
+        height: 42px !important;
+        padding: 0 !important;
+        border-radius: 0 !important; /* 必须直角 */
+        border: 1px solid #2c3e50 !important; /* 手绘风黑线 */
+        margin: 0 !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
     }
 
-    /* 数字颜色：使用低饱和度的经典墨水色 */
-    .ink-1 { color: #0044cc; } /* 蓝墨水 */
-    .ink-2 { color: #008000; } /* 绿墨水 */
-    .ink-3 { color: #cc0000; } /* 红墨水 */
-    .ink-4 { color: #000080; } /* 深蓝 */
-    .ink-bomb { color: #000; font-weight: 900; } /* 纯黑炸弹 */
-
-    /* 状态栏文字 */
-    .status-text {
-        font-family: 'Courier New', monospace;
-        font-size: 16px;
-        font-weight: bold;
-        color: #333;
+    /* A. 未揭开的按钮 (Secondary) */
+    button[kind="secondary"] {
+        width: 42px !important;
+        height: 42px !important;
+        border: 1px solid #2c3e50 !important;
+        border-radius: 0 !important;
+        background-color: transparent !important; /* 透明，显示纸张背景 */
+        color: transparent !important;
+        transition: background 0.2s;
     }
     
-    /* 旗帜模式激活时的提示 */
-    .flag-mode-on button[kind="primary"] {
-        background-color: #cc0000 !important; /* 红色警示 */
+    /* 鼠标悬停：像铅笔涂了一层灰 */
+    button[kind="secondary"]:hover {
+        background-color: rgba(0,0,0,0.05) !important;
     }
+
+    /* B. 已揭开的格子 */
+    .cell-drawn {
+        width: 42px; height: 42px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid #2c3e50;
+        background-color: rgba(0,0,0,0.03); /* 稍微深一点点 */
+        font-size: 26px;
+        line-height: 1;
+        cursor: default;
+    }
+    
+    /* C. 功能按钮 (Start/Restart)：手绘框 */
+    button[kind="primary"] {
+        background: transparent !important;
+        color: #2c3e50 !important;
+        border: 3px solid #2c3e50 !important;
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px !important; /* 模拟手画的不规则圆角 */
+        font-size: 20px !important;
+        padding: 5px 20px !important;
+        box-shadow: 2px 2px 0px #2c3e50 !important;
+        transition: transform 0.1s !important;
+    }
+    button[kind="primary"]:hover {
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0px #2c3e50 !important;
+        background-color: #fff !important;
+    }
+
+    /* 蜡笔数字颜色 (稍微调低饱和度，模仿画笔) */
+    .c1 { color: #2980b9; } /* 蓝蜡笔 */
+    .c2 { color: #27ae60; } /* 绿蜡笔 */
+    .c3 { color: #c0392b; } /* 红蜡笔 */
+    .c4 { color: #8e44ad; } /* 紫蜡笔 */
+    .c5 { color: #d35400; } /* 橙蜡笔 */
+    
+    .bomb-drawn {
+        color: #000;
+        font-size: 28px;
+    }
+    
+    /* 旗帜 */
+    .flag-mark {
+        color: #e74c3c;
+        font-weight: bold;
+    }
+    
+    /* 容器边框 (画在最外面的大框) */
+    .board-container {
+        display: inline-block;
+        border: 3px solid #2c3e50; /* 加粗的外边框 */
+        background: #fff;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
 # ================= UI 主程序 =================
 
-st.title("MINESWEEPER")
+st.title("Minesweeper") # 字体会自动应用 Patrick Hand
 
-# --- 1. 极简设置栏 ---
+# --- 1. 设置区域 (手绘风) ---
 if not st.session_state.running:
-    st.markdown("---")
-    c1, c2, c3 = st.columns(3)
+    st.markdown("### 📝 Game Setup")
     
+    c1, c2 = st.columns(2)
     with c1:
-        R = st.number_input("ROWS", 5, 20, 10)
+        # 手绘风里，Number Input 也会变字体
+        R = st.number_input("Rows", 5, 20, 10)
     with c2:
-        C = st.number_input("COLS", 5, 20, 10)
-    with c3:
-        # 恢复 10%, 15%, 20% 的合理难度
-        diff_label = st.selectbox("DIFFICULTY", ["EASY (10%)", "NORMAL (15%)", "HARD (20%)"])
+        C = st.number_input("Cols", 5, 20, 10)
+        
+    # 难度选择 (Easy=10%, Med=15%, Hard=20%)
+    diff = st.selectbox("Difficulty", ["Easy (10%)", "Medium (15%)", "Hard (20%)"])
     
-    if "EASY" in diff_label: rate = 0.10
-    elif "NORMAL" in diff_label: rate = 0.15
+    if "Easy" in diff: rate = 0.10
+    elif "Medium" in diff: rate = 0.15
     else: rate = 0.20
     
-    M = int(R * C * rate)
-    M = max(1, M)
+    M = max(1, int(R * C * rate))
     
-    st.write(f"**MINES:** {M}")
-    st.write("")
+    st.write(f"Mines to find: **{M}**")
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button("START GAME", type="primary", use_container_width=True):
+    # 开始按钮
+    if st.button("Play Game", type="primary", use_container_width=True):
         start(R, C, M)
         st.rerun()
 
-# --- 2. 游戏界面 ---
+# --- 2. 游戏区域 ---
 else:
-    # 顶部简单的文字状态
-    c_left, c_mid, c_right = st.columns([1, 2, 1])
+    # 顶部手写状态栏
+    c1, c2, c3 = st.columns([1.5, 2, 1.5])
     
-    with c_mid:
+    with c2:
         left = st.session_state.mines - len(st.session_state.flags)
-        status = "PLAYING"
-        if st.session_state.lost: status = "FAILED"
-        if st.session_state.won: status = "CLEARED"
-        st.markdown(f"<div style='text-align:center' class='status-text'>MINES: {left} | {status}</div>", unsafe_allow_html=True)
+        # 状态文字
+        status = "Playing..."
+        if st.session_state.lost: status = "Oops! Boom!"
+        if st.session_state.won: status = "You Did It!"
+        
+        st.markdown(f"<div style='text-align:center; font-size:24px; border-bottom:2px solid #ccc;'>{left} 💣 | {status}</div>", unsafe_allow_html=True)
     
-    with c_left:
-        # 模式切换：单纯的黑白按钮
-        mode_txt = "[X] FLAG MODE" if st.session_state.flag else "[ ] DIG MODE"
-        # 动态加个class给容器方便变色（可选）
-        if st.button(mode_txt, type="primary", use_container_width=True):
+    with c1:
+        # 模式切换
+        mode_text = "🚩 Flagging" if st.session_state.flag else "⛏️ Digging"
+        if st.button(mode_text, type="primary", use_container_width=True):
             st.session_state.flag = not st.session_state.flag
             st.rerun()
-
-    with c_right:
-        if st.button("RESTART", type="primary", use_container_width=True):
+            
+    with c3:
+        if st.button("Restart", type="primary", use_container_width=True):
             st.session_state.running = False
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-
-    # 游戏结果文字 (打字机风格)
+    
+    # 结果提示
     if st.session_state.lost: 
-        st.markdown("<div style='text-align:center; color:red; font-weight:bold;'>GAME OVER.</div>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#c0392b; text-align:center;'>Game Over!</h2>", unsafe_allow_html=True)
     if st.session_state.won: 
-        st.markdown("<div style='text-align:center; color:green; font-weight:bold;'>PUZZLE SOLVED.</div>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#27ae60; text-align:center;'>Victory!</h2>", unsafe_allow_html=True)
 
-    # === 渲染纸质网格 ===
+    # === 渲染井字棋盘 ===
     
-    # 1. 居中容器
+    # 居中外框
     st.markdown("<div style='display:flex; justify-content:center;'>", unsafe_allow_html=True)
-    
-    # 2. 黑色粗边框容器 (Sudoku Border)
-    st.markdown("<div class='sudoku-border'>", unsafe_allow_html=True)
+    # 加粗外边框容器
+    st.markdown("<div class='board-container'>", unsafe_allow_html=True)
     
     board = st.session_state.board
     vis = st.session_state.revealed
@@ -256,23 +277,21 @@ else:
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        # 炸弹：简单的黑色符号，或者红色X
-                        char = "X" if val == -1 else str(val)
-                        color_cls = "ink-bomb" if val == -1 else f"ink-{val}"
-                        # 如果是失败踩到的雷，背景稍微灰一点
-                        bg_style = "background:#ddd;" if (is_rev and val == -1) else ""
-                        st.markdown(f"<div class='cell-paper {color_cls}' style='{bg_style}'>{char}</div>", unsafe_allow_html=True)
+                        # 炸弹：用手写的 X 或 * 表示
+                        st.markdown("<div class='cell-drawn bomb-drawn'>*</div>", unsafe_allow_html=True)
                     elif val == 0:
-                        # 空地：纯白
-                        st.markdown("<div class='cell-paper'></div>", unsafe_allow_html=True)
+                        # 空地
+                        st.markdown("<div class='cell-drawn'></div>", unsafe_allow_html=True)
                     else:
                         # 数字
-                        st.markdown(f"<div class='cell-paper ink-{val}'>{val}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='cell-drawn c{val}'>{val}</div>", unsafe_allow_html=True)
                 else:
-                    # 未揭开：白色按钮
-                    label = "P" if is_flg else " " # P for Pin/Flag
+                    # 按钮
+                    # 这里插旗用简单的 F 或 P
+                    label = "P" if is_flg else " "
                     
                     if not end:
+                        # 关键：type="secondary" 会应用我们的透明边框样式
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
                                 if is_flg: flg.remove((r,c))
@@ -283,9 +302,9 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 结束后的未揭开区域：灰色斜线感
-                        char = "P" if is_flg else "."
-                        st.markdown(f"<div class='cell-paper' style='color:#999; background:#f9f9f9;'>{char}</div>", unsafe_allow_html=True)
+                        # 结束后的未揭开格子：画斜线或阴影
+                        bg = "background: repeating-linear-gradient(45deg, #eee, #eee 5px, #fff 5px, #fff 10px);"
+                        st.markdown(f"<div class='cell-drawn' style='color:#999; {bg}'>{label}</div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True) # End sudoku-border
-    st.markdown("</div>", unsafe_allow_html=True) # End center flex
+    st.markdown("</div>", unsafe_allow_html=True) # end board-container
+    st.markdown("</div>", unsafe_allow_html=True) # end center flex
