@@ -2,8 +2,7 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Minesweeper Clean Input", layout="centered", page_icon="🖍️")
-
+st.set_page_config(page_title="Minesweeper Final", layout="centered", page_icon="🖍️")
 
 # ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
@@ -14,9 +13,7 @@ def neighbors(r, c, R, C):
             if 0 <= rr < R and 0 <= cc < C:
                 yield rr, cc
 
-
 def init_board(R, C): return [[0] * C for _ in range(R)]
-
 
 def place(board, mines):
     R, C = len(board), len(board[0])
@@ -30,7 +27,6 @@ def place(board, mines):
             if board[nr][nc] != -1:
                 board[nr][nc] += 1
 
-
 def flood(board, vis, r, c):
     stack = [(r, c)]
     while stack:
@@ -41,7 +37,6 @@ def flood(board, vis, r, c):
             for nx, ny in neighbors(x, y, len(board), len(board[0])):
                 if (nx, ny) not in vis: stack.append((nx, ny))
 
-
 def reveal(board, vis, flg, r, c):
     if (r, c) in flg: return True
     if board[r][c] == -1: return False
@@ -50,7 +45,6 @@ def reveal(board, vis, flg, r, c):
     else:
         vis.add((r, c))
     return True
-
 
 def start(R, C, M):
     b = init_board(R, C)
@@ -65,14 +59,15 @@ def start(R, C, M):
     st.session_state.running = True
     st.session_state.lost = False
     st.session_state.won = False
-
+    # 【关键】保存当前配置，用于 Restart
+    st.session_state.game_config = {'R': R, 'C': C, 'M': M}
 
 if "running" not in st.session_state: st.session_state.running = False
 if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS 样式 (隐藏 +/- 版) =================
+# ================= 🎨 CSS 样式 =================
 
 st.markdown("""
 <style>
@@ -110,10 +105,10 @@ st.markdown("""
         caret-color: #000000 !important;
         font-weight: bold !important;
         font-size: 18px !important;
-        text-align: center; /* 让数字居中更好看 */
+        text-align: center;
     }
 
-    /* 🚨🚨🚨 核心修改：隐藏 +/- 步进按钮 🚨🚨🚨 */
+    /* 隐藏 +/- 步进按钮 */
     div[data-testid="stNumberInput"] button {
         display: none !important;
     }
@@ -176,7 +171,6 @@ st.markdown("""
         border: 2px solid #2c3e50 !important;
         border-radius: 4px !important;
         box-sizing: border-box !important;
-
         background-color: #dfe6e9 !important; 
         color: #2c3e50 !important;
         font-size: 20px; font-weight: bold;
@@ -192,13 +186,13 @@ st.markdown("""
         line-height: 1;
     }
 
-    /* Start 按钮 */
+    /* 功能按钮 (Start/Home/Restart) */
     button[kind="primary"] {
         background-color: #2c3e50 !important;
         border: 2px solid #000 !important;
         width: 100%;
     }
-    button[kind="primary"] p { color: #fff !important; font-size: 20px !important; }
+    button[kind="primary"] p { color: #fff !important; font-size: 18px !important; }
     button[kind="primary"]:hover { background-color: #000 !important; }
 
     .c1 { color: #0984e3 !important; } .c2 { color: #00b894 !important; }
@@ -211,6 +205,7 @@ st.markdown("""
 
 st.title("Minesweeper")
 
+# 1. 游戏设置界面
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
 
@@ -232,21 +227,36 @@ if not st.session_state.running:
         start(R, C, M)
         st.rerun()
 
+# 2. 游戏进行界面
 else:
-    c1, c2, c3 = st.columns([1.5, 2, 1.5])
-    with c2:
-        left = st.session_state.mines - len(st.session_state.flags)
-        st.markdown(
-            f"<div style='text-align:center; font-size:24px; font-weight:bold; padding-top:5px;'>{left} 💣</div>",
-            unsafe_allow_html=True)
+    # 顶部控制栏：Home | Mode | Status | Restart
+    c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
+    
     with c1:
+        # Home 键：回到设置页
+        if st.button("🏠 Home", type="primary", use_container_width=True):
+            st.session_state.running = False
+            st.rerun()
+
+    with c2:
         mode = "🚩 Flag" if st.session_state.flag else "⛏️ Dig"
         if st.button(mode, type="primary", use_container_width=True):
             st.session_state.flag = not st.session_state.flag
             st.rerun()
+            
     with c3:
-        if st.button("Restart", type="primary", use_container_width=True):
-            st.session_state.running = False
+        left = st.session_state.mines - len(st.session_state.flags)
+        # 稍微调整一下文字显示，让它和按钮对齐
+        st.markdown(
+            f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px;'>{left} 💣 Left</div>",
+            unsafe_allow_html=True)
+            
+    with c4:
+        # Restart 键：使用保存的配置直接重开
+        if st.button("🔄", type="primary", use_container_width=True, help="Restart with same settings"):
+            # 读取之前保存的配置
+            cfg = st.session_state.game_config
+            start(cfg['R'], cfg['C'], cfg['M'])
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
