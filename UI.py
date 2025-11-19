@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Static Minesweeper", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Adaptive Minesweeper", layout="centered", page_icon="🌓")
 
-# ================= 核心逻辑 =================
+# ================= 核心逻辑 (保持不变) =================
 def neighbors(r, c, R, C):
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
@@ -66,158 +66,155 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS (全静态死板版) =================
+# ================= 🎨 CSS: 自适应黑白模式 =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 全局 */
-    .stApp {
-        background-color: #fdfcf0;
-        font-family: 'Patrick Hand', cursive, sans-serif !important;
-        color: #000000 !important;
+    /* 1. 定义 CSS 变量 (默认浅色模式) */
+    :root {
+        --bg-color: #fdfcf0;         /* 米色纸张 */
+        --text-color: #2c3e50;       /* 深蓝墨水 */
+        --box-bg: #ffffff;           /* 白色格子/输入框 */
+        --box-border: #2c3e50;       /* 深色边框 */
+        --box-hover: #f0f0f0;        /* 浅灰悬停 */
+        --revealed-bg: #dfe6e9;      /* 已揭开的灰坑 */
+        --accent-color: #2c3e50;     /* 按钮颜色 */
+        --accent-text: #ffffff;      /* 按钮文字 */
+        --bomb-color: #d63031;       /* 炸弹红 */
     }
-    
-    h1, p, label, span, div {
-        color: #000000 !important;
-        font-family: 'Patrick Hand', cursive, sans-serif !important;
-    }
-    h1 { text-align: center; }
 
-    /* ============================================================
-       🚫 1. 输入框 & 下拉框容器：完全静态 🚫
-       ============================================================ */
+    /* 2. 深色模式检测 (Dark Mode Override) */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg-color: #1e1e1e;     /* 深灰黑板 */
+            --text-color: #ecf0f1;   /* 白色粉笔 */
+            --box-bg: #2d3436;       /* 深色格子 */
+            --box-border: #dfe6e9;   /* 浅色边框 */
+            --box-hover: #3d4548;    /* 深色悬停 */
+            --revealed-bg: #000000;  /* 纯黑深坑 */
+            --accent-color: #ecf0f1; /* 按钮反色 */
+            --accent-text: #1e1e1e;  /* 按钮文字反色 */
+            --bomb-color: #ff7675;   /* 亮红炸弹 */
+        }
+    }
+
+    /* ================= 应用变量 ================= */
+
+    /* 全局背景与文字 */
+    .stApp {
+        background-color: var(--bg-color) !important;
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+        color: var(--text-color) !important;
+        transition: background-color 0.3s, color 0.3s;
+    }
     
-    /* 容器：白底黑框 */
+    h1, h2, h3, p, label, span, div, button {
+        color: var(--text-color) !important;
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+    }
+    
+    /* 输入框 & 下拉框容器 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
-        background-color: #ffffff !important;
-        border: 2px solid #000000 !important;
-        color: #000000 !important;
+        background-color: var(--box-bg) !important;
+        border: 2px solid var(--box-border) !important;
+        color: var(--text-color) !important;
         border-radius: 4px !important;
         box-shadow: none !important;
     }
-
-    /* 杀掉所有 Focus/Active 状态 */
-    div[data-baseweb="select"] > div:focus-within,
-    div[data-baseweb="input"] > div:focus-within,
-    div[data-testid="stNumberInput"] > div:focus-within,
-    div[data-baseweb="select"] > div:hover,
-    div[data-baseweb="input"] > div:hover {
-        border-color: #000000 !important;
-        background-color: #ffffff !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }
-
-    /* 内部文字：纯黑 */
-    input[type="number"], 
-    div[data-baseweb="select"] span,
-    div[data-testid="stNumberInput"] input {
-        color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important;
-        caret-color: #000000 !important;
+    
+    /* 输入框内部文字 */
+    input[type="number"], div[data-baseweb="select"] span, div[data-testid="stNumberInput"] input {
+        color: var(--text-color) !important;
+        -webkit-text-fill-color: var(--text-color) !important;
+        caret-color: var(--text-color) !important;
         font-weight: bold !important;
         font-size: 18px !important;
         text-align: center;
     }
-
-    /* 下拉箭头：纯黑 */
+    
+    /* 下拉箭头 (使用 SVG fill 继承当前文字颜色) */
     div[data-baseweb="select"] svg {
-        fill: #000000 !important;
-        color: #000000 !important;
+        fill: var(--text-color) !important;
     }
-
-    /* 隐藏 +/- */
-    div[data-testid="stNumberInput"] button {
-        display: none !important;
-    }
-
-    /* ============================================================
-       🚫 2. 下拉菜单选项：绝对静止 (不变色) 🚫
-       ============================================================ */
     
+    /* 隐藏 +/- 按钮 */
+    div[data-testid="stNumberInput"] button { display: none !important; }
+
+    /* 下拉菜单弹出层 */
     ul[data-baseweb="menu"] {
-        background-color: #ffffff !important;
-        border: 2px solid #000000 !important;
-        box-shadow: none !important;
+        background-color: var(--box-bg) !important;
+        border: 2px solid var(--box-border) !important;
     }
-    
-    /* 针对每一个选项 (无论是默认、悬停、还是选中) */
-    li[data-baseweb="option"],
-    li[data-baseweb="option"]:hover,
-    li[data-baseweb="option"]:focus,
-    li[data-baseweb="option"]:active,
-    li[data-baseweb="option"][aria-selected="true"] {
-        background-color: #ffffff !important; /* 永远白底 */
-        color: #000000 !important;            /* 永远黑字 */
-        font-weight: bold !important;
+    li[data-baseweb="option"] {
+        background-color: var(--box-bg) !important;
+        color: var(--text-color) !important;
     }
-    
-    /* 强制内部子元素也变黑 */
-    li[data-baseweb="option"] * {
-        color: #000000 !important;
+    li[data-baseweb="option"]:hover, li[data-baseweb="option"][aria-selected="true"] {
+        background-color: var(--box-hover) !important;
     }
 
-    /* ============================================================
-       3. 棋盘样式
-       ============================================================ */
-    
+    /* ================= 棋盘样式 ================= */
+
     div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; justify-content: center !important; }
     div[data-testid="column"] { width: 44px !important; flex: 0 0 44px !important; min-width: 44px !important; padding: 2px !important; }
 
     .tile-box {
         width: 40px !important; height: 40px !important;
         border-radius: 4px !important;
-        border: 2px solid #2c3e50 !important;
+        border: 2px solid var(--box-border) !important;
         display: flex; align-items: center; justify-content: center;
         box-sizing: border-box !important;
     }
 
-    /* 未揭开 */
+    /* 未揭开 (动态颜色) */
     button[kind="secondary"] {
         @extend .tile-box;
-        width: 40px !important; height: 40px !important;
-        background-color: #ffffff !important; 
-        color: transparent !important;
-        box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
-        border: 2px solid #2c3e50 !important;
+        background-color: var(--box-bg) !important;
+        color: transparent !important; /* 这里的字必须透明 */
         transition: none !important;
     }
-    /* 只有轻微的按压反馈，不变色 */
-    button[kind="secondary"]:hover { background-color: #ffffff !important; border-color: #000 !important; }
-    button[kind="secondary"]:active { box-shadow: none !important; transform: translate(1px, 1px); }
+    button[kind="secondary"]:hover {
+        background-color: var(--box-hover) !important;
+        border-color: var(--box-border) !important;
+    }
 
-    /* 已揭开 */
+    /* 已揭开 (凹陷色) */
     .cell-revealed {
         width: 40px !important; height: 40px !important;
-        border: 2px solid #2c3e50 !important;
+        border: 2px solid var(--box-border) !important;
         border-radius: 4px !important;
         box-sizing: border-box !important;
-        background-color: #dfe6e9 !important; 
-        color: #2c3e50 !important;
+        
+        background-color: var(--revealed-bg) !important;
+        color: var(--text-color) !important;
+        
         font-size: 20px; font-weight: bold;
         cursor: default;
         display: flex; align-items: center; justify-content: center;
-        box-shadow: none !important;
     }
 
-    .cell-bomb { color: #d63031 !important; font-size: 28px !important; line-height: 1; }
+    /* 炸弹 (动态红) */
+    .cell-bomb { color: var(--bomb-color) !important; font-size: 28px !important; line-height: 1; }
     
-    /* 按钮 */
+    /* 功能按钮 (Start/Restart/Home) */
     button[kind="primary"] {
-        background-color: #2c3e50 !important;
-        border: 2px solid #000 !important;
+        background-color: var(--accent-color) !important;
+        border: 2px solid var(--box-border) !important;
         width: 100%;
         box-shadow: none !important;
     }
-    button[kind="primary"] p { color: #fff !important; font-size: 18px !important; }
-    button[kind="primary"]:hover { background-color: #000 !important; }
+    button[kind="primary"] p { color: var(--accent-text) !important; font-size: 18px !important; }
+    button[kind="primary"]:hover { opacity: 0.9; }
 
-    .c1 { color: #0984e3 !important; } .c2 { color: #00b894 !important; }
-    .c3 { color: #d63031 !important; } .c4 { color: #6c5ce7 !important; }
+    /* 数字颜色 (保持彩色，但在深色模式下稍微调亮) */
+    .c1 { color: #3498db !important; } 
+    .c2 { color: #2ecc71 !important; } 
+    .c3 { color: #e74c3c !important; }
+    .c4 { color: #9b59b6 !important; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -228,20 +225,17 @@ st.title("Minesweeper")
 
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
-    
     c1, sp1, c2, sp2, c3 = st.columns([1, 0.5, 1, 0.5, 2])
     
-    with c1:
-        R = st.number_input("Rows", 5, 20, 10)
+    with c1: R = st.number_input("Rows", 5, 20, 10)
     with sp1: st.empty()
-    with c2:
-        C = st.number_input("Cols", 5, 20, 10)
+    with c2: C = st.number_input("Cols", 5, 20, 10)
     with sp2: st.empty()
-    with c3:
+    with c3: 
         diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
         rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
     
-    M = max(1, int(R * C * rate))
+    M = max(1, int(R*C*rate))
     st.write(f"**Mines:** {M}")
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -250,26 +244,23 @@ if not st.session_state.running:
         st.rerun()
 
 else:
-    # Home | Mode | Status | Restart
+    # 游戏进行中
     c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
-    
     with c1:
         if st.button("🏠 Home", type="primary", use_container_width=True):
             st.session_state.running = False
             st.rerun()
-
     with c2:
         mode = "🚩 Flag" if st.session_state.flag else "⛏️ Dig"
         if st.button(mode, type="primary", use_container_width=True):
             st.session_state.flag = not st.session_state.flag
             st.rerun()
-            
     with c3:
         left = st.session_state.mines - len(st.session_state.flags)
+        # 注意：这里去掉了行内 style='color: xxx'，完全交给 CSS 变量控制颜色
         st.markdown(
-            f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px; color:#000;'>{left} 💣 Left</div>",
+            f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px;'>{left} 💣 Left</div>",
             unsafe_allow_html=True)
-            
     with c4:
         if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
             cfg = st.session_state.game_config
@@ -278,8 +269,9 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
-    if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
+    # 结果提示：使用 class 而不是硬编码颜色
+    if st.session_state.lost: st.markdown("<h2 style='text-align:center; color:var(--bomb-color);'>Oops! Boom!</h2>", unsafe_allow_html=True)
+    if st.session_state.won: st.markdown("<h2 style='text-align:center; color:#2ecc71;'>You Win!</h2>", unsafe_allow_html=True)
 
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
@@ -317,6 +309,7 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
+                        # 游戏结束后的未揭开：背景色与 BoxBG 一致
+                        st.markdown(f"<div class='cell-revealed' style='background-color:var(--box-bg) !important; opacity:0.6;'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
