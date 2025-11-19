@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Final Readable Fix", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Crayon Tiles", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 (不变) =================
+# ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -63,154 +63,147 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 终极修复 CSS (白底黑字版) =================
+# ================= 🎨 CSS 样式 (精准控制版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 全局重置 */
+    /* 1. App 背景 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
-    
-    h1, h2, h3, p, span, div, label, button {
-        color: #2c3e50 !important;
+
+    /* 2. 仅针对游戏内的文字应用手写体和颜色，不破坏系统菜单 */
+    .stMarkdown, .stButton, .stSelectbox, .stNumberInput, h1 {
         font-family: 'Patrick Hand', cursive, sans-serif !important;
+        color: #2c3e50;
     }
+    
+    h1 { text-align: center; color: #000 !important; margin-bottom: 10px; }
 
     /* ============================================================
-       🔧 修复 1: 输入框 (Input Fields) -> 白底黑字 + 粗黑边框
+       修复: 输入框样式 (白底黑字)
        ============================================================ */
-    
-    /* 输入框外壳 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
-        background-color: #ffffff !important; /* 必须纯白 */
-        border: 2px solid #2c3e50 !important; /* 粗黑框 */
-        color: #000000 !important;
-        border-radius: 4px !important;
-    }
-
-    /* 输入框内的文字 */
-    input.st-bd, input.st-be, div[data-baseweb="select"] span {
-        color: #000000 !important; /* 纯黑文字 */
-        -webkit-text-fill-color: #000000 !important;
-        caret-color: #000000 !important;
-        font-weight: bold !important;
-        font-size: 18px !important;
-    }
-
-    /* 数字输入框的 +/- 按钮图标颜色修复 */
-    div[data-testid="stNumberInput"] svg {
-        fill: #000000 !important; /* 强制变成黑色 */
-        color: #000000 !important;
-    }
-
-    /* 下拉菜单弹出层 (Popover) */
-    ul[data-baseweb="menu"] {
         background-color: #ffffff !important;
         border: 2px solid #2c3e50 !important;
+        border-radius: 6px !important;
+        color: #000 !important;
     }
-    li[data-baseweb="option"] {
-        color: #000000 !important;
+    
+    /* 输入框内文字 */
+    input.st-bd, input.st-be, div[data-baseweb="select"] span {
+        color: #000 !important;
         font-weight: bold !important;
+        font-size: 18px !important;
+        -webkit-text-fill-color: #000 !important;
     }
-    /* 选中状态 */
-    li[data-baseweb="option"][aria-selected="true"] {
-        background-color: #f0f0f0 !important;
-    }
+    
+    /* 修复数字框右侧按钮 */
+    div[data-testid="stNumberInput"] svg { fill: #000 !important; }
+    div[data-testid="stNumberInput"] > div > div { background-color: #fff !important; border-left: 1px solid #ccc !important; }
 
-    /* 标题文字 */
-    div[data-testid="stMarkdownContainer"] p {
-        font-size: 20px !important;
-        font-weight: bold !important;
-    }
+    /* 下拉菜单选项 */
+    ul[data-baseweb="menu"] { background-color: #fff !important; border: 2px solid #2c3e50 !important; }
+    li[data-baseweb="option"] { color: #000 !important; }
 
     /* ============================================================
-       🔧 修复 2: 棋盘样式 (无缝 + 强制对齐)
+       样式: 蜡笔方块棋盘 (有缝隙版)
        ============================================================ */
-
-    /* 消除列间距 */
-    div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
     
-    /* 强制列宽收缩 */
+    /* 恢复 Streamlit 默认间距，不再强制 gap: 0 */
+    
+    /* 限制列宽，让格子是正方形的 */
     div[data-testid="column"] {
-        flex: 0 0 auto !important;
-        width: auto !important;
-        min-width: 0 !important;
-        padding: 0 !important; margin: 0 !important;
+        width: 44px !important;
+        flex: 0 0 44px !important;
+        min-width: 44px !important;
+        padding: 2px !important; /* 这里的 padding 就是缝隙 */
+    }
+    
+    /* 居中对齐 */
+    div[data-testid="stHorizontalBlock"] {
+        justify-content: center !important;
     }
 
-    /* 统一盒子标准 */
-    .unified-box {
-        width: 40px !important; height: 40px !important;
+    /* 统一方块样式 */
+    .tile-box {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 4px !important; /* 轻微圆角，像手绘 */
+        border: 2px solid #2c3e50 !important; /* 粗黑边 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
         box-sizing: border-box !important;
-        border: 1px solid #2c3e50 !important;
-        margin-right: -1px !important; margin-bottom: -1px !important;
-        display: flex; align-items: center; justify-content: center;
-        line-height: 1 !important;
     }
 
-    /* 按钮 (未揭开) - 纯白 */
+    /* 1. 未揭开 (按钮) - 亮白悬浮 */
     button[kind="secondary"] {
-        @extend .unified-box;
+        @extend .tile-box;
         width: 40px !important; height: 40px !important;
-        border: 1px solid #2c3e50 !important;
-        border-radius: 0 !important; padding: 0 !important;
-        margin: 0 !important; margin-right: -1px !important; margin-bottom: -1px !important;
-        
+        border: 2px solid #2c3e50 !important;
+        border-radius: 4px !important;
         background-color: #ffffff !important;
         color: transparent !important;
-        z-index: 10;
+        
+        /* 加一点手绘阴影 */
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
+        transition: transform 0.1s;
     }
-    button[kind="secondary"]:hover { background-color: #f0f0f0 !important; }
+    button[kind="secondary"]:hover {
+        transform: translate(-1px, -1px);
+        box-shadow: 3px 3px 0px rgba(0,0,0,0.2) !important;
+        background-color: #f9f9f9 !important;
+    }
+    button[kind="secondary"]:active {
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0px rgba(0,0,0,0.2) !important;
+    }
 
-    /* 已揭开 (深灰) */
+    /* 2. 已揭开 (Div) - 浅灰平铺 */
     .cell-revealed {
         width: 40px !important; height: 40px !important;
-        border: 1px solid #2c3e50 !important;
+        border: 2px solid #2c3e50 !important;
+        border-radius: 4px !important;
         box-sizing: border-box !important;
-        margin-right: -1px !important; margin-bottom: -1px !important;
         
-        background-color: #b2bec3 !important;
-        color: #fff !important; 
-        font-size: 22px; font-weight: bold;
-        cursor: default; z-index: 1;
+        background-color: #e0e0e0 !important; /* 明显的灰 */
+        color: #2c3e50 !important;
+        font-size: 20px; font-weight: bold;
+        cursor: default;
         
         display: flex; align-items: center; justify-content: center;
+        /* 已揭开没有阴影，看起来是平的 */
+        box-shadow: none !important;
     }
 
-    /* 炸弹样式 (蜡笔红X) */
+    /* 炸弹样式 */
     .cell-bomb {
-        background-color: #b2bec3 !important; 
-        color: #d63031 !important;
-        font-size: 32px !important;
+        color: #d63031 !important; /* 蜡笔红 */
+        font-size: 28px !important;
+        line-height: 1;
     }
 
     /* 开始按钮 */
     button[kind="primary"] {
         background-color: #2c3e50 !important;
         border: 2px solid #000 !important;
-        border-radius: 8px !important;
         width: 100%;
     }
-    button[kind="primary"] p { color: #ffffff !important; font-size: 20px !important; }
+    button[kind="primary"] p { color: #fff !important; font-size: 20px !important; }
     button[kind="primary"]:hover { background-color: #000 !important; }
 
-    /* 外框装饰 */
-    .board-wrap {
-        display: inline-block;
-        border-top: 2px solid #2c3e50; border-left: 2px solid #2c3e50;
-        line-height: 0; margin-top: 20px;
-    }
-    
     /* 数字颜色 */
-    .c1 { color: #00cec9 !important; text-shadow: 1px 1px 0 #555; }
-    .c2 { color: #6c5ce7 !important; text-shadow: 1px 1px 0 #555; }
-    .c3 { color: #fdcb6e !important; text-shadow: 1px 1px 0 #555; }
+    .c1 { color: #0984e3 !important; }
+    .c2 { color: #00b894 !important; }
+    .c3 { color: #d63031 !important; }
+    .c4 { color: #6c5ce7 !important; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -221,13 +214,11 @@ st.title("Minesweeper")
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
     
-    # 【布局调整】加大 Spacer 的比例 (0.2 -> 0.5)，防止输入框粘连
-    c1, sp1, c2, sp2, c3 = st.columns([1, 0.5, 1, 0.5, 2])
+    # 这里不需要 spacer 了，因为有自然间距
+    c1, c2, c3 = st.columns([1, 1, 1.5])
     
     with c1: R = st.number_input("Rows", 5, 20, 10)
-    with sp1: st.empty()
     with c2: C = st.number_input("Cols", 5, 20, 10)
-    with sp2: st.empty()
     with c3: 
         diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
         rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
@@ -241,10 +232,10 @@ if not st.session_state.running:
         st.rerun()
 
 else:
-    c1, sp1, c2, sp2, c3 = st.columns([1.5, 0.2, 2, 0.2, 1.5])
+    c1, c2, c3 = st.columns([1.5, 2, 1.5])
     with c2:
         left = st.session_state.mines - len(st.session_state.flags)
-        st.markdown(f"<div style='text-align:center; font-size:24px; font-weight:bold;'>{left} 💣</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center; font-size:24px; font-weight:bold; padding-top:5px;'>{left} 💣</div>", unsafe_allow_html=True)
     with c1:
         mode = "🚩 Flag" if st.session_state.flag else "⛏️ Dig"
         if st.button(mode, type="primary", use_container_width=True):
@@ -257,12 +248,12 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! X_X</h2>", unsafe_allow_html=True)
+    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
-    # === 渲染网格 ===
-    st.markdown("<div style='display:flex; justify-content:center;'>", unsafe_allow_html=True)
-    st.markdown("<div class='board-wrap'>", unsafe_allow_html=True)
+    # === 渲染网格 (有缝隙版) ===
+    # 不需要 board-wrap 了，因为是散开的方块
+    st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
     board = st.session_state.board
     vis = st.session_state.revealed
@@ -281,6 +272,7 @@ else:
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
+                        # 红色蜡笔X
                         st.markdown("<div class='cell-revealed cell-bomb'>X</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
@@ -303,5 +295,4 @@ else:
                     else:
                         st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
