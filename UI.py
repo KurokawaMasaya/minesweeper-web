@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Adaptive Minesweeper", layout="centered", page_icon="🌓")
+st.set_page_config(page_title="Fixed Minesweeper", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 (不变) =================
+# ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
@@ -66,13 +66,13 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS: 自适应 + 防抖动 =================
+# ================= 🎨 CSS (布局修复 + 防抖 + 可见性) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 定义颜色变量 (核心自适应逻辑) */
+    /* 1. 颜色变量定义 (自适应) */
     :root {
         /* ☀️ 浅色模式 */
         --bg-color: #fdfcf0;
@@ -88,12 +88,12 @@ st.markdown("""
 
     @media (prefers-color-scheme: dark) {
         :root {
-            /* 🌙 深色模式 */
+            /* 🌙 深色模式修正：背景纯黑，格子深灰，文字白 */
             --bg-color: #1a1a1a;
             --text-color: #ecf0f1;
             --box-bg: #2d3436;
             --box-border: #ecf0f1;
-            --revealed-bg: #000000;
+            --revealed-bg: #4a4a4a; /* 调亮一点，防止和纯黑背景混淆 */
             --accent-bg: #ecf0f1;
             --accent-text: #2c3e50;
             --bomb-color: #ff7675;
@@ -101,10 +101,11 @@ st.markdown("""
         }
     }
 
-    /* 2. 全局应用变量 */
+    /* 全局应用 */
     .stApp {
         background-color: var(--bg-color) !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
+        color: var(--text-color) !important;
     }
     
     h1, h2, h3, p, label, span, div {
@@ -113,10 +114,9 @@ st.markdown("""
     }
     h1 { text-align: center; }
 
-    /* ============================================================
-       3. 输入框 & 菜单 (完全自适应)
-       ============================================================ */
-    
+    /* ============================================
+       输入框 & 菜单
+       ============================================ */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
@@ -126,24 +126,17 @@ st.markdown("""
         border-radius: 4px !important;
         box-shadow: none !important;
     }
-    
-    /* 修复输入文字颜色 */
+
     input[type="number"], div[data-baseweb="select"] span, div[data-testid="stNumberInput"] input {
         color: var(--text-color) !important;
         -webkit-text-fill-color: var(--text-color) !important;
-        caret-color: var(--text-color) !important;
         font-weight: bold !important;
-        font-size: 18px !important;
         text-align: center;
     }
-    
-    /* 下拉箭头颜色 */
+
     div[data-baseweb="select"] svg { fill: var(--text-color) !important; }
-    
-    /* 隐藏 +/- */
     div[data-testid="stNumberInput"] button { display: none !important; }
 
-    /* 下拉菜单弹出层 */
     ul[data-baseweb="menu"] {
         background-color: var(--box-bg) !important;
         border: 2px solid var(--box-border) !important;
@@ -151,59 +144,47 @@ st.markdown("""
     li[data-baseweb="option"] {
         background-color: var(--box-bg) !important;
         color: var(--text-color) !important;
-        font-weight: bold !important;
     }
     li[data-baseweb="option"]:hover, li[data-baseweb="option"][aria-selected="true"] {
         background-color: var(--hover-bg) !important;
         color: var(--text-color) !important;
     }
-    li[data-baseweb="option"] * { color: var(--text-color) !important; }
 
+    /* ============================================
+       🚨 布局核心修复 🚨
+       ============================================ */
 
-    /* ============================================================
-       🚨 4. 棋盘防抖核心 (Height Lock) 🚨
-       ============================================================ */
+    /* 1. 让列内容居中，但不强制锁死列宽，防止顶部按钮被挤扁 */
+    div[data-testid="column"] {
+        display: flex !important;
+        justify-content: center !important; /* 让格子在列里居中 */
+        align-items: center !important;
+        min-width: 0 !important;
+    }
 
+    /* 2. 棋盘行间距 */
     div[data-testid="stHorizontalBlock"] {
-        gap: 0.4rem !important; 
+        gap: 0.3rem !important; /* 稍微紧凑一点 */
         justify-content: center !important;
     }
 
-    div[data-testid="column"] {
-        width: 40px !important;
-        min-width: 40px !important;
-        max-width: 40px !important;
-        flex: 0 0 40px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    /* ⚡️ 锁死按钮容器高度 ⚡️ */
-    div.stButton {
+    /* 3. ⚡️ 棋盘格子 (Secondary Button) 物理锁定 ⚡️ */
+    button[kind="secondary"] {
         width: 40px !important;
         height: 40px !important;
         min-height: 40px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1 !important;
-    }
-
-    /* 通用方块样式 */
-    .tile-std {
-        width: 40px !important; height: 40px !important;
+        max-height: 40px !important;
+        
         border: 2px solid var(--box-border) !important;
         border-radius: 4px !important;
-        box-sizing: border-box !important;
-        display: flex; align-items: center; justify-content: center;
-        line-height: 1 !important;
-    }
-
-    /* A. 未揭开 (按钮) */
-    button[kind="secondary"] {
-        @extend .tile-std;
         background-color: var(--box-bg) !important;
+        
+        padding: 0 !important;
+        margin: 0 !important;
+        
+        /* 防止变色 */
         color: transparent !important;
-        box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
         transition: none !important;
     }
     button[kind="secondary"]:hover {
@@ -211,34 +192,50 @@ st.markdown("""
         border-color: var(--box-border) !important;
     }
     button[kind="secondary"]:active {
-        background-color: var(--revealed-bg) !important;
         box-shadow: none !important;
+        transform: translate(1px, 1px);
     }
 
-    /* B. 已揭开 (Div) */
+    /* 4. ⚡️ 已揭开方块 (Div) 物理锁定 ⚡️ */
+    /* 必须和上面的 button 尺寸属性 100% 一致 */
     .cell-revealed {
-        @extend .tile-std;
+        width: 40px !important;
+        height: 40px !important;
+        min-height: 40px !important; /* 关键防抖 */
+        
+        border: 2px solid var(--box-border) !important;
+        border-radius: 4px !important;
+        box-sizing: border-box !important;
+        
         background-color: var(--revealed-bg) !important;
         color: var(--text-color) !important;
-        font-size: 20px; font-weight: bold;
+        
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+        font-size: 20px !important;
+        font-weight: bold !important;
+        line-height: 1 !important;
+        
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         cursor: default;
-        box-shadow: none !important;
         margin: 0 !important;
     }
 
-    .cell-bomb { color: var(--bomb-color) !important; font-size: 26px !important; }
-
-    /* 功能按钮 */
+    /* 5. 顶部大按钮 (Primary Button) 恢复正常 */
     button[kind="primary"] {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 45px !important;
         background-color: var(--accent-bg) !important;
         border: 2px solid var(--box-border) !important;
-        width: 100%;
-        box-shadow: none !important;
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
     }
     button[kind="primary"] p { color: var(--accent-text) !important; font-size: 18px !important; }
     button[kind="primary"]:hover { opacity: 0.9; }
+    button[kind="primary"]:active { transform: translate(1px, 1px); box-shadow: none !important; }
 
-    /* 数字颜色 */
+    .cell-bomb { color: var(--bomb-color) !important; font-size: 28px !important; }
     .c1 { color: #3498db !important; } .c2 { color: #2ecc71 !important; }
     .c3 { color: #e74c3c !important; } .c4 { color: #9b59b6 !important; }
 
@@ -251,7 +248,9 @@ st.title("Minesweeper")
 
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
+    
     c1, sp1, c2, sp2, c3 = st.columns([1, 0.5, 1, 0.5, 2])
+    
     with c1: R = st.number_input("Rows", 5, 20, 10)
     with sp1: st.empty()
     with c2: C = st.number_input("Cols", 5, 20, 10)
@@ -260,7 +259,7 @@ if not st.session_state.running:
         diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
         rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
     
-    M = max(1, int(R*C*rate))
+    M = max(1, int(R * C * rate))
     st.write(f"**Mines:** {M}")
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -269,7 +268,9 @@ if not st.session_state.running:
         st.rerun()
 
 else:
+    # 顶部栏：Home | Mode | Status | Restart
     c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
+    
     with c1:
         if st.button("🏠 Home", type="primary", use_container_width=True):
             st.session_state.running = False
@@ -281,7 +282,6 @@ else:
             st.rerun()
     with c3:
         left = st.session_state.mines - len(st.session_state.flags)
-        # 颜色自适应
         st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px;'>{left} 💣 Left</div>", unsafe_allow_html=True)
     with c4:
         if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
@@ -291,7 +291,7 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.session_state.lost: st.markdown(f"<h2 style='text-align:center; color:var(--bomb-color);'>Oops! Boom!</h2>", unsafe_allow_html=True)
+    if st.session_state.lost: st.markdown("<h2 style='text-align:center; color:var(--bomb-color);'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='text-align:center; color:#2ecc71;'>You Win!</h2>", unsafe_allow_html=True)
 
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
@@ -305,8 +305,8 @@ else:
         for c in range(st.session_state.cols):
             with cols[c]:
                 key = f"{r}_{c}"
-                is_rev = (r,c) in vis
-                is_flg = (r,c) in flg
+                is_rev = (r, c) in vis
+                is_flg = (r, c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
                 if is_rev or (end and board[r][c] == -1):
@@ -322,15 +322,15 @@ else:
                     if not end:
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
-                                if is_flg: flg.remove((r,c))
-                                else: flg.add((r,c))
+                                if is_flg: flg.remove((r, c))
+                                else: flg.add((r, c))
                                 st.rerun()
                             elif not is_flg:
                                 if not reveal(board, vis, flg, r, c):
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 游戏结束未揭开：使用自适应背景色
+                        # 游戏结束后，未揭开的格子保持背景色
                         st.markdown(f"<div class='cell-revealed' style='background-color:var(--box-bg) !important; opacity:0.6;'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
