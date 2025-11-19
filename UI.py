@@ -1,11 +1,10 @@
 import streamlit as st
 import random
-import time
 
 # 页面配置
 st.set_page_config(page_title="Minesweeper Pro", layout="centered", page_icon="💣")
 
-# ================= 核心算法 (完全不动) =================
+# ================= 核心逻辑 (保持不变) =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -58,247 +57,207 @@ def start(R,C,M):
     st.session_state.running=True
     st.session_state.lost=False
     st.session_state.won=False
-    st.session_state.last_message=None
 
-# ================= Session State =================
 if "running" not in st.session_state: st.session_state.running=False
 if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
-if "last_message" not in st.session_state: st.session_state.last_message=None
-# 用于触发 Toast 的状态
-if "toast_msg" not in st.session_state: st.session_state.toast_msg = None
 
-# ================= 🎨 CSS 样式优化版 =================
+# ================= 🎨 界面样式 (CSS) =================
 
 st.markdown("""
 <style>
-    /* 全局背景 */
     .stApp {
         background: radial-gradient(circle at 50% -20%, #2e3b55 0%, #1a1d29 50%, #0f111a 100%);
-        font-family: 'Inter', sans-serif;
+        font-family: 'Segoe UI', sans-serif;
+    }
+    h1 { color: white; text-align: center; margin-bottom: 0px; }
+    
+    /* 游戏区域容器 */
+    .game-board {
+        display: flex; flex-direction: column; align-items: center;
+        background: rgba(255,255,255,0.05);
+        padding: 20px; border-radius: 15px;
+        border: 1px solid rgba(255,255,255,0.1);
+        margin-top: 10px;
+        width: fit-content; margin-left: auto; margin-right: auto;
     }
 
-    h1 { color: #fff; text-align: center; margin-bottom: 5px !important; }
-
-    /* 游戏容器：限制最大宽度，防止在宽屏上太散 */
-    .game-container {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        margin: 0 auto; 
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: fit-content; /* 关键：容器宽度适应内容 */
-    }
-
-    /* 强制所有按钮的大小为 40px x 40px，解决"按键太大"的问题 */
+    /* 按钮通用样式 */
     div.stButton > button {
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 6px !important;
-        border: none !important;
-        background: linear-gradient(145deg, #3a3f50, #2a2e3a) !important;
-        box-shadow: 3px 3px 6px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.05) !important;
-        color: transparent !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        transition: all 0.1s !important;
-    }
-    
-    div.stButton > button:hover {
-        transform: translateY(-1px);
-        background: #454b5e !important;
-    }
-    
-    div.stButton > button:active {
-        transform: translateY(1px);
-        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.4) !important;
-    }
-    
-    /* 🚩 旗帜模式激活时的按钮边框 */
-    .flag-active div.stButton > button {
-        border: 1px solid #ff6b6b !important;
+        font-weight: 600;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
     }
 
-    /* 已揭开的格子 */
-    .revealed-cell {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #1a1d24;
-        border-radius: 4px;
-        font-weight: 900;
-        font-size: 18px;
+    /* 游戏格子按钮 (未揭开) */
+    .grid-btn button {
+        width: 38px !important; height: 38px !important;
+        background: #3a3f50 !important;
+        margin: 0 !important; padding: 0 !important;
+        border: 1px solid #4a4f60 !important;
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+        transition: transform 0.1s;
+    }
+    .grid-btn button:hover {
+        background: #4d5366 !important;
+        border-color: #666 !important;
+        z-index: 2;
+    }
+    .grid-btn button:active {
+        transform: scale(0.95);
+    }
+
+    /* 🚩 插旗模式下的鼠标样式 */
+    .flag-mode-cursor button {
+        cursor: copy !important; /* 看起来像个加号/复制，表示放置 */
+        border-color: #ff6b6b !important;
+    }
+
+    /* ⛏️ 挖掘模式下的鼠标样式 */
+    .dig-mode-cursor button {
+        cursor: crosshair !important; /* 准星样式 */
+    }
+
+    /* 已揭开格子 */
+    .cell {
+        width: 38px; height: 38px;
+        display: flex; align-items: center; justify-content: center;
+        background: #1e2129;
         border: 1px solid #2a2e3a;
-        box-shadow: inset 1px 1px 4px rgba(0,0,0,0.6);
-    }
-    
-    /* 消除 Streamlit 列之间的默认间距 */
-    div[data-testid="column"] {
-        width: 40px !important;
-        flex: 0 0 40px !important;
-        min-width: 40px !important;
-        padding: 1px !important; 
-    }
-    
-    /* 强制 Grid 居中 */
-    div[data-testid="stHorizontalBlock"] {
-        justify-content: center;
+        border-radius: 4px;
+        font-weight: bold; font-size: 18px;
     }
 
-    /* 顶部状态栏 */
-    .status-bar {
-        display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;
+    /* Streamlit列间距消除 */
+    div[data-testid="column"] { 
+        width: 38px !important; flex: unset !important; padding: 1px !important; 
     }
-    .pill {
-        background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 20px;
-        color: #ccc; font-size: 14px; border: 1px solid #333;
+    div[data-testid="stHorizontalBlock"] { justify-content: center; }
+
+    /* 颜色定义 */
+    .n1 { color: #4285F4; } .n2 { color: #34A853; } .n3 { color: #EA4335; } 
+    .n4 { color: #A142F4; } .bomb { background: #500; }
+
+    /* 顶部控制栏背景 */
+    .control-panel {
+        background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px;
+        margin-bottom: 20px; border: 1px solid #333;
     }
-
-    /* 数字颜色 */
-    .num-1 { color: #4285F4; } .num-2 { color: #34A853; } .num-3 { color: #EA4335; }
-    .num-4 { color: #A142F4; } .mine { font-size: 20px; }
-    
-    /* 旗帜 Overlay */
-    .flag-overlay { pointer-events: none; position: absolute; top: 5px; left: 8px; font-size: 18px; z-index: 2; }
-
 </style>
 """, unsafe_allow_html=True)
 
-# ================= 处理 Toast 逻辑 =================
-# 必须放在 UI 渲染前处理，保证每次 rerun 都能弹
-if st.session_state.toast_msg:
-    st.toast(st.session_state.toast_msg, icon="ℹ️")
-    st.session_state.toast_msg = None
-
-# ================= 主界面逻辑 =================
+# ================= UI 构建 =================
 
 st.title("Minesweeper")
 
-# 游戏未开始（配置界面）
+# 1. 游戏设置界面 (未开始时显示)
 if not st.session_state.running:
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.container():
-        c1, c2, c3 = st.columns([1,2,1]) # 用列布局挤压中间，让设置不要太宽
-        with c2:
-            st.markdown("### ⚙️ Game Setup")
-            R = st.slider("Rows", 5, 15, 10) # 限制最大行数防止溢出屏幕
-            C = st.slider("Columns", 5, 15, 10)
-            diff = st.select_slider("Difficulty", ["Easy", "Medium", "Hard"])
-            factor = {"Easy":0.12, "Medium":0.18, "Hard":0.25}
-            M = max(1, int(R*C*factor[diff]))
-            
-            st.write("")
-            # 开始按钮：使用 type="primary" 让它更显眼
-            if st.button("🚀 START GAME", type="primary", use_container_width=True):
-                start(R,C,M)
-                st.session_state.toast_msg = "Game Started! Good Luck!"
-                st.rerun()
+    st.info("👇 Please configure and start the game below / 请在下方设置并开始游戏")
+    with st.container(border=True):
+        c1, c2, c3 = st.columns(3)
+        with c1: R = st.number_input("Rows (行)", 5, 15, 10)
+        with c2: C = st.number_input("Cols (列)", 5, 15, 10)
+        with c3: 
+            diff = st.selectbox("Difficulty (难度)", ["Easy", "Medium", "Hard"])
+            M = int(R*C*{"Easy":0.12, "Medium":0.18, "Hard":0.25}[diff])
+        
+        st.markdown("---")
+        # START 按钮：加上了 help 提示
+        if st.button(f"🚀 START GAME ({R}x{C}, {M} Mines)", type="primary", use_container_width=True, help="点击开始新游戏 / Click to start"):
+            start(R,C,M)
+            st.rerun()
 
-# 游戏进行中
+# 2. 游戏主界面 (进行中/结束)
 else:
-    board = st.session_state.board
-    vis   = st.session_state.revealed
-    flg   = st.session_state.flags
-    R     = st.session_state.rows
-    C     = st.session_state.cols
-    M     = st.session_state.mines
-
-    # 计算剩余雷数
-    mines_left = M - len(flg)
-    
-    # 判定胜利
-    safe = R*C-M
-    opened = sum((r,c) in vis for r in range(R) for c in range(C) if board[r][c]!=-1)
-    
-    if opened == safe and not st.session_state.won:
-        st.session_state.won = True
-        st.session_state.toast_msg = "🎉 VICTORY!" 
-        # 胜利后自动插满旗
-        for r in range(R):
-             for c in range(C):
-                 if board[r][c] == -1: flg.add((r,c))
-                 else: vis.add((r,c))
-        st.rerun()
-
-    # === 顶部控制栏 ===
-    # 使用 columns 布局让 Mode 按钮和 Restart 按钮分开
-    c_left, c_mid, c_right = st.columns([1.5, 2, 1.5])
-    
-    with c_mid:
-        # 状态展示
-        st.markdown(f"""
-        <div class="status-bar">
-            <span class="pill">💣 {mines_left}</span>
-            <span class="pill">⏱️ {'Running' if not st.session_state.lost and not st.session_state.won else 'Ended'}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with c_left:
-        # 旗帜模式切换按钮
-        mode_label = "🚩 Flag Mode: ON" if st.session_state.flag else "⛏️ Reveal Mode"
-        # 根据状态改变按钮样式 (虽然 Streamlit 按钮样式有限，但文案可变)
-        if st.button(mode_label, use_container_width=True):
-            st.session_state.flag = not st.session_state.flag
-            state_text = "Enabled" if st.session_state.flag else "Disabled"
-            st.session_state.toast_msg = f"Flag Mode {state_text}"
-            st.rerun()
+    # 顶部控制区 (Control Panel)
+    with st.container():
+        st.markdown('<div class="control-panel">', unsafe_allow_html=True)
+        
+        # 使用 3 列布局：重开 - 状态 - 插旗
+        c_restart, c_status, c_flag = st.columns([1, 1.5, 1])
+        
+        with c_restart:
+            # RESTART 按钮
+            if st.button("🔄 Restart / 重开", use_container_width=True, help="放弃当前进度并重新开始 / Reset Game"):
+                st.session_state.running = False
+                st.rerun()
+        
+        with c_status:
+            # 中间显示状态文字
+            mines_left = st.session_state.mines - len(st.session_state.flags)
+            status_color = "red" if st.session_state.lost else ("green" if st.session_state.won else "orange")
+            status_text = "💥 FAILED" if st.session_state.lost else ("🎉 WON" if st.session_state.won else "Playing")
             
-    with c_right:
-        # 重开按钮
-        if st.button("🔄 Restart", use_container_width=True):
-            st.session_state.running = False
-            st.session_state.toast_msg = "Game Reset"
-            st.rerun()
+            st.markdown(f"""
+            <div style="text-align:center; line-height:1.2;">
+                <div style="font-size:12px; color:#888;">MINES LEFT</div>
+                <div style="font-size:24px; font-weight:bold; color:white;">💣 {mines_left}</div>
+                <div style="font-size:14px; color:{status_color}; font-weight:bold;">{status_text}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # === 游戏棋盘区 ===
-    # 动态给容器添加 class，如果是插旗模式，添加 css 标记
-    flag_class = "flag-active" if st.session_state.flag else ""
-    
-    st.markdown(f"<div class='game-container {flag_class}'>", unsafe_allow_html=True)
-    
-    # 结果提示 Banner
+        with c_flag:
+            # FLAG 按钮 (状态切换)
+            mode_color = "primary" if st.session_state.flag else "secondary"
+            label = "🚩 Flag: ON" if st.session_state.flag else "⛏️ Dig: ON"
+            help_text = "当前是插旗模式" if st.session_state.flag else "当前是挖掘模式"
+            
+            if st.button(label, type=mode_color, use_container_width=True, help=f"点击切换模式 / Click to toggle. {help_text}"):
+                st.session_state.flag = not st.session_state.flag
+                st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 游戏棋盘区
+    # 根据模式给容器加 class，改变鼠标指针样式
+    cursor_class = "flag-mode-cursor" if st.session_state.flag else "dig-mode-cursor"
+    st.markdown(f'<div class="game-board {cursor_class}">', unsafe_allow_html=True)
+
+    # 胜利/失败提示 Banner
     if st.session_state.lost:
-        st.error("💥 BOOM! You hit a mine! Press Restart to try again.")
+        st.error("💥 BOOM! You clicked a mine. / 你踩到雷了！")
     elif st.session_state.won:
-        st.success("🎉 Congratulations! You cleared the field!")
+        st.success("🎉 SUCCESS! You found all mines. / 恭喜通关！")
 
-    # 渲染 Grid
-    # 使用 gap="0" (Streamlit 1.30+ 特性) 或者靠 CSS 挤压
-    # 这里完全依赖 CSS 的 div[data-testid="column"] { width: 40px } 强制控制
-    for r in range(R):
-        cols = st.columns(C) 
-        for c in range(C):
+    # 渲染网格
+    board = st.session_state.board
+    vis = st.session_state.revealed
+    flg = st.session_state.flags
+    
+    for r in range(st.session_state.rows):
+        cols = st.columns(st.session_state.cols)
+        for c in range(st.session_state.cols):
             with cols[c]:
-                k = f"{r}_{c}"
-                # 逻辑：已揭开 OR (游戏结束且是雷)
-                is_revealed = (r,c) in vis
-                is_mine = board[r][c] == -1
-                show_mine = st.session_state.lost and is_mine
-                
-                if is_revealed or show_mine:
+                key = f"{r}-{c}"
+                # 逻辑：是否显示内容
+                if (r,c) in vis or (st.session_state.lost and board[r][c] == -1) or (st.session_state.won):
+                    # 已揭开
                     val = board[r][c]
                     if val == -1:
-                        txt, cls = "💣", "mine"
+                        # 如果是踩雷导致的，背景变红
+                        bg_style = "background:#8b0000;" if ((r,c) in vis and val == -1) else ""
+                        st.markdown(f"<div class='cell bomb' style='{bg_style}'>💣</div>", unsafe_allow_html=True)
                     elif val == 0:
-                        txt, cls = "", ""
+                        st.markdown("<div class='cell'></div>", unsafe_allow_html=True)
                     else:
-                        txt, cls = str(val), f"num-{val}"
-                    st.markdown(f"<div class='revealed-cell {cls}'>{txt}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='cell n{val}'>{val}</div>", unsafe_allow_html=True)
                 else:
-                    # 旗帜 Overlay
-                    if (r,c) in flg:
-                        st.markdown("<div class='flag-overlay'>🚩</div>", unsafe_allow_html=True)
+                    # 未揭开 (按钮)
+                    # 插旗标记
+                    btn_label = "🚩" if (r,c) in flg else ""
                     
-                    # 只有游戏没结束时按钮才有效
-                    if not st.session_state.lost and not st.session_state.won:
-                        if st.button(f"b{r}{c}", key=k):
+                    # 按钮是否可用
+                    disabled = st.session_state.lost or st.session_state.won
+                    
+                    # 在按钮容器上加 class 用于 CSS 选择
+                    st.markdown('<div class="grid-btn">', unsafe_allow_html=True)
+                    
+                    # 如果游戏结束，渲染不可点的假按钮或禁用按钮
+                    if disabled:
+                         st.markdown(f"<div class='cell' style='background:#2a2e3a;color:red;'>{btn_label}</div>", unsafe_allow_html=True)
+                    else:
+                        if st.button(btn_label, key=key):
                             if st.session_state.flag:
                                 if (r,c) in flg: flg.remove((r,c))
                                 else: flg.add((r,c))
@@ -306,10 +265,12 @@ else:
                             elif (r,c) not in flg:
                                 if not reveal(board, vis, flg, r, c):
                                     st.session_state.lost = True
-                                    st.session_state.toast_msg = "💥 BOOM! Game Over"
                                 st.rerun()
-                    else:
-                        # 游戏结束后显示不可点击的方块占位
-                        st.markdown("<div style='width:40px;height:40px;background:#2a2e3a;border-radius:6px;'></div>", unsafe_allow_html=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 底部操作提示
+    if st.session_state.running and not st.session_state.lost and not st.session_state.won:
+        help_msg = "💡 Tip: Click **Flag: ON** to mark mines." if st.session_state.flag else "💡 Tip: You are in **Dig Mode**. Click to reveal."
+        st.caption(help_msg)
