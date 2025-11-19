@@ -2,7 +2,7 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="High Contrast Minesweeper", layout="centered", page_icon="📝")
+st.set_page_config(page_title="Final Grid Fix", layout="centered", page_icon="📐")
 
 # ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
@@ -63,136 +63,157 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 CSS 样式 =================
+# ================= 🎨 强制统一 CSS =================
 
 st.markdown("""
 <style>
+    /* 1. 字体引入 */
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
+    /* 2. 全局颜色重置：防止白字 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
     
-    h1, p, label, span, div {
+    /* 暴力覆盖所有文字颜色为深色 */
+    h1, h2, h3, p, span, div, label, button {
+        color: #2c3e50 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
+    
+    /* 标题特殊处理 */
+    h1 {
+        color: #000 !important;
+        font-weight: 900 !important;
+        font-size: 3rem !important;
+        text-align: center;
+        margin-bottom: 20px;
+    }
 
     /* ============================================================
-       修复 1: 输入框改为【深色背景 + 白色字体】
+       修复: 开始按钮 (Start Game)
        ============================================================ */
-    
-    /* 覆盖输入框容器 */
-    div[data-baseweb="select"] > div, 
-    div[data-baseweb="input"] > div {
-        background-color: #2c3e50 !important; /* 深色底 */
+    button[kind="primary"] {
+        background-color: #2c3e50 !important; /* 深蓝底 */
         border: 2px solid #000 !important;
-        border-radius: 4px !important;
-        color: white !important; /* 白字 */
+        border-radius: 8px !important;
+        min-height: 50px !important;
     }
-
-    /* 覆盖输入框内的文字 */
-    div[data-baseweb="select"] span, 
-    div[data-testid="stNumberInput"] input {
-        color: #ffffff !important; /* 强制白色 */
-        font-size: 18px !important;
-        font-weight: bold !important;
-        -webkit-text-fill-color: #ffffff !important; /* 兼容性强制 */
-    }
-    
-    /* 下拉箭头颜色 */
-    div[data-baseweb="select"] svg {
-        fill: white !important;
-        color: white !important;
-    }
-    
-    /* 下拉菜单选项 */
-    ul[data-baseweb="menu"] {
-        background-color: #2c3e50 !important;
-        color: white !important;
-    }
-    li[data-baseweb="option"] {
-        color: white !important;
-    }
-
-    /* Label 颜色 (Rows, Cols, Diff) 保持深色以便在米色背景看清 */
-    div[data-testid="stMarkdownContainer"] p, label {
-        color: #2c3e50 !important;
+    /* 强制按钮内部文字颜色为白 */
+    button[kind="primary"] p {
+        color: #ffffff !important; 
+        font-size: 24px !important;
         font-weight: bold !important;
     }
+    button[kind="primary"]:hover {
+        background-color: #000 !important;
+    }
+    
+    /* 输入框样式 */
+    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
+        background-color: #fff !important;
+        border: 2px solid #2c3e50 !important;
+        color: #000 !important;
+    }
+    div[data-testid="stNumberInput"] input { color: #000 !important; }
+
 
     /* ============================================================
-       修复 2: 游戏格子极高对比度 (黑白灰分明)
+       核心修复: 统一网格 (The Perfect Grid)
        ============================================================ */
 
-    /* 布局无缝 */
+    /* 1. 布局归零 */
     div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
     div[data-testid="column"] {
         width: 40px !important; min-width: 40px !important; flex: 0 0 40px !important;
         padding: 0 !important; margin: 0 !important;
     }
 
-    /* 通用盒子 */
-    button[kind="secondary"], .cell-revealed {
-        width: 40px !important; height: 40px !important;
-        border: 1px solid #000 !important; /* 纯黑边框 */
+    /* 2. 定义统一的“盒子”标准 */
+    /* 不管是 button 还是 div，都必须遵守这个规则 */
+    .unified-box {
+        width: 40px !important;
+        height: 40px !important;
+        box-sizing: border-box !important; /* 关键：边框算在宽度内 */
+        border: 1px solid #000 !important; /* 统一 1px 黑边 */
         border-radius: 0 !important;
-        padding: 0 !important; margin: 0 !important;
-        margin-right: -1px !important; margin-bottom: -1px !important;
-        box-sizing: border-box !important;
-        display: flex; align-items: center; justify-content: center;
+        padding: 0 !important;
+        margin: 0 !important;
+        
+        /* 负边距：消除双重边框 */
+        margin-right: -1px !important;
+        margin-bottom: -1px !important;
+        
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1 !important;
     }
 
-    /* A. 未揭开 (按钮) -> 亮白色 + 浮起感 */
+    /* 3. 应用到 Streamlit 按钮 (未揭开) */
     button[kind="secondary"] {
-        background-color: #ffffff !important; 
+        /* 继承 unified-box 的属性需要手动再写一遍，因为无法直接给组件加 class */
+        width: 40px !important;
+        height: 40px !important;
+        box-sizing: border-box !important;
+        border: 1px solid #000 !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        margin-right: -1px !important;
+        margin-bottom: -1px !important;
+        
+        background-color: #ffffff !important; /* 纯白 */
         color: transparent !important;
-        z-index: 10;
+        z-index: 10; /* 浮在上面 */
     }
     button[kind="secondary"]:hover {
-        background-color: #f0f0f0 !important;
+        background-color: #e0e0e0 !important;
+        z-index: 20;
     }
-
-    /* B. 已揭开 (坑) -> 深灰色 (#999) + 凹陷感 */
-    /* 这个颜色比之前深很多，和白色的对比非常强烈 */
+    
+    /* 4. 应用到 Markdown Div (已揭开) */
     .cell-revealed {
-        background-color: #999999 !important; 
-        color: white !important; /* 数字变成白色或亮色以便在深灰底阅读 */
-        font-size: 24px;
+        /* 完全复刻上面的属性 */
+        width: 40px !important;
+        height: 40px !important;
+        box-sizing: border-box !important;
+        border: 1px solid #000 !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        margin-right: -1px !important;
+        margin-bottom: -1px !important;
+        
+        background-color: #999 !important; /* 深灰 */
+        color: #fff !important; /* 白字 */
         font-weight: bold;
+        font-size: 20px;
+        cursor: default;
         z-index: 1;
-        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2); /* 内阴影增加凹陷感 */
-    }
-    
-    /* 炸弹 */
-    .cell-bomb {
-        background-color: #000 !important; /* 炸弹是黑底 */
-        color: red !important;
+        
+        /* Flex 居中 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    /* 数字颜色调整 (在深灰底上要亮一点) */
-    .c1 { color: #cbf3f0 !important; text-shadow: 1px 1px 0 #000; } /* 亮青 */
-    .c2 { color: #b5e48c !important; text-shadow: 1px 1px 0 #000; } /* 亮绿 */
-    .c3 { color: #ff99c8 !important; text-shadow: 1px 1px 0 #000; } /* 亮粉 */
-    .c4 { color: #a0c4ff !important; text-shadow: 1px 1px 0 #000; } /* 亮蓝 */
+    /* 炸弹特殊色 */
+    .cell-bomb { background-color: #000 !important; color: red !important; }
     
-    /* 外框 */
+    /* 5. 外框容器 (Border Wrapper) */
     .board-wrap {
         display: inline-block;
-        border-top: 3px solid #000;
-        border-left: 3px solid #000;
-        padding: 0; line-height: 0;
+        border-top: 2px solid #000; /* 加粗外框 */
+        border-left: 2px solid #000;
+        line-height: 0;
     }
 
-    /* 功能按钮 */
-    button[kind="primary"] {
-        background: #2c3e50 !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 4px !important; 
-        font-size: 18px !important;
-    }
-    button[kind="primary"]:hover { background: #000 !important; }
+    /* 颜色微调 */
+    .c1 { color: #cbf3f0 !important; text-shadow: 1px 1px 0 #000; }
+    .c2 { color: #b5e48c !important; text-shadow: 1px 1px 0 #000; }
+    .c3 { color: #ff99c8 !important; text-shadow: 1px 1px 0 #000; }
     
 </style>
 """, unsafe_allow_html=True)
@@ -255,7 +276,7 @@ else:
                 is_flg = (r,c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
-                # A. 已揭开 (深色凹陷)
+                # 1. 已揭开 (Markdown DIV)
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
@@ -265,7 +286,7 @@ else:
                     else:
                         st.markdown(f"<div class='cell-revealed c{val}'>{val}</div>", unsafe_allow_html=True)
                 
-                # B. 未揭开 (亮白浮起)
+                # 2. 未揭开 (Streamlit Button)
                 else:
                     label = "P" if is_flg else " "
                     if not end:
@@ -279,7 +300,6 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 结束后的未揭开区域
                         st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
