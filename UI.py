@@ -66,13 +66,13 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 纯净版 CSS (禁止任何变色) =================
+# ================= 🎨 CSS (去特效死板版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 全局强制黑字 */
+    /* 1. 全局字体和背景 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
@@ -83,12 +83,13 @@ st.markdown("""
         color: #000000 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
+    h1 { text-align: center; }
 
     /* ============================================================
-       🚫 禁止变色区：输入框 & 下拉框 🚫
+       🚫 强力去特效区：输入框 & 下拉框 🚫
        ============================================================ */
     
-    /* 容器：永远白底黑框 */
+    /* 1. 容器基础样式：白底黑框 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
@@ -96,28 +97,41 @@ st.markdown("""
         border: 2px solid #000000 !important;
         color: #000000 !important;
         border-radius: 4px !important;
-        box-shadow: none !important; /* 去掉发光 */
+        transition: none !important; /* 禁止动画 */
     }
 
-    /* 文字：永远纯黑 */
+    /* 2. 杀掉 Focus/Active 状态的高亮边框和阴影 */
+    div[data-baseweb="select"] > div:focus-within,
+    div[data-baseweb="input"] > div:focus-within,
+    div[data-testid="stNumberInput"] > div:focus-within,
+    div[data-baseweb="select"] > div:hover,
+    div[data-baseweb="input"] > div:hover,
+    div[data-testid="stNumberInput"] > div:hover {
+        border-color: #000000 !important; /* 永远是黑框 */
+        box-shadow: none !important;      /* 永远没发光 */
+        background-color: #ffffff !important; /* 永远是白底 */
+        outline: none !important;
+    }
+
+    /* 3. 输入框内的文字：纯黑 */
     input[type="number"], 
     div[data-baseweb="select"] span,
     div[data-testid="stNumberInput"] input {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
-        caret-color: #000000 !important;
+        caret-color: #000000 !important; /* 光标也是黑的 */
         font-weight: bold !important;
         font-size: 18px !important;
         text-align: center;
     }
 
-    /* 图标 (下拉箭头)：永远纯黑 */
+    /* 4. 下拉箭头：黑色 */
     div[data-baseweb="select"] svg {
         fill: #000000 !important;
         color: #000000 !important;
     }
 
-    /* 隐藏步进器 */
+    /* 5. 隐藏数字输入框的 +/- 按钮 */
     div[data-testid="stNumberInput"] button {
         display: none !important;
     }
@@ -126,51 +140,63 @@ st.markdown("""
     ul[data-baseweb="menu"] {
         background-color: #ffffff !important;
         border: 2px solid #000000 !important;
+        box-shadow: none !important;
     }
     
-    /* 选项：不管鼠标放不放上去，字永远是黑的！ */
+    /* 选项：不管怎么选，都是白底黑字，最多变个灰 */
     li[data-baseweb="option"] {
         color: #000000 !important;
         background-color: #ffffff !important;
+        font-weight: bold !important;
     }
     
-    /* 选项悬停/选中：背景变浅灰，字依然黑 */
+    /* 悬停/选中：只变背景为浅灰，文字颜色绝对不动 */
     li[data-baseweb="option"]:hover,
     li[data-baseweb="option"][aria-selected="true"] {
-        background-color: #e0e0e0 !important; /* 只有背景变 */
-        color: #000000 !important;            /* 字不变 */
+        background-color: #cccccc !important; /* 灰色高亮 */
+        color: #000000 !important;            /* 文字还是黑 */
     }
     
-    /* 选项里的子元素：也必须黑 */
-    li[data-baseweb="option"] * {
+    li[data-baseweb="option"] div {
         color: #000000 !important;
     }
 
     /* ============================================================
-       棋盘
+       棋盘样式
        ============================================================ */
     
     div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; justify-content: center !important; }
     div[data-testid="column"] { width: 44px !important; flex: 0 0 44px !important; min-width: 44px !important; padding: 2px !important; }
 
-    /* 按钮 (未揭开) */
+    .tile-box {
+        width: 40px !important; height: 40px !important;
+        border-radius: 4px !important;
+        border: 2px solid #2c3e50 !important;
+        display: flex; align-items: center; justify-content: center;
+        box-sizing: border-box !important;
+    }
+
+    /* 未揭开 */
     button[kind="secondary"] {
+        @extend .tile-box;
         width: 40px !important; height: 40px !important;
         background-color: #ffffff !important; 
-        border: 2px solid #2c3e50 !important;
-        border-radius: 4px !important;
         color: transparent !important;
-        
-        /* 禁止变色特效 */
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
+        border: 2px solid #2c3e50 !important;
+        /* 禁止按钮点击变色 */
         transition: none !important;
     }
-    /* 鼠标放上去只变一点点背景，不许乱动 */
     button[kind="secondary"]:hover {
         background-color: #f0f0f0 !important;
         border-color: #2c3e50 !important;
     }
-    button[kind="secondary"]:active {
+    button[kind="secondary"]:active, button[kind="secondary"]:focus {
         background-color: #e0e0e0 !important;
+        border-color: #2c3e50 !important;
+        color: transparent !important;
+        outline: none !important;
+        box-shadow: none !important;
     }
 
     /* 已揭开 */
@@ -184,15 +210,22 @@ st.markdown("""
         font-size: 20px; font-weight: bold;
         cursor: default;
         display: flex; align-items: center; justify-content: center;
+        box-shadow: none !important;
     }
 
     .cell-bomb { color: #d63031 !important; font-size: 28px !important; line-height: 1; }
-
-    /* Start/Home/Restart 按钮 */
+    
+    /* 功能按钮 */
     button[kind="primary"] {
         background-color: #2c3e50 !important;
         border: 2px solid #000 !important;
         width: 100%;
+        /* 去除选中光圈 */
+        box-shadow: none !important;
+    }
+    button[kind="primary"]:focus {
+        border-color: #000 !important;
+        box-shadow: none !important;
     }
     button[kind="primary"] p { color: #fff !important; font-size: 18px !important; }
     button[kind="primary"]:hover { background-color: #000 !important; }
@@ -231,6 +264,7 @@ if not st.session_state.running:
         st.rerun()
 
 else:
+    # Home | Mode | Status | Restart
     c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
     
     with c1:
@@ -251,6 +285,7 @@ else:
             unsafe_allow_html=True)
             
     with c4:
+        # 快速重开
         if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
             cfg = st.session_state.game_config
             start(cfg['R'], cfg['C'], cfg['M'])
@@ -261,6 +296,7 @@ else:
     if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
+    # 渲染网格
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
     board = st.session_state.board
@@ -272,8 +308,8 @@ else:
         for c in range(st.session_state.cols):
             with cols[c]:
                 key = f"{r}_{c}"
-                is_rev = (r,c) in vis
-                is_flg = (r,c) in flg
+                is_rev = (r, c) in vis
+                is_flg = (r, c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
                 if is_rev or (end and board[r][c] == -1):
@@ -289,8 +325,8 @@ else:
                     if not end:
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
-                                if is_flg: flg.remove((r,c))
-                                else: flg.add((r,c))
+                                if is_flg: flg.remove((r, c))
+                                else: flg.add((r, c))
                                 st.rerun()
                             elif not is_flg:
                                 if not reveal(board, vis, flg, r, c):
