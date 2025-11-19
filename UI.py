@@ -1,10 +1,10 @@
 import streamlit as st
 import random
 
-# 页面配置 (宽屏模式，给手机更多空间)
+# 页面配置 (Wide layout helps on mobile)
 st.set_page_config(page_title="Mobile Minesweeper", layout="wide", page_icon="🖍️")
 
-# ================= 核心逻辑 (不变) =================
+# ================= 核心逻辑 (保持不变) =================
 def neighbors(r, c, R, C):
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
@@ -66,178 +66,138 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS (全端适配 + 涂鸦风) =================
+# ================= 🎨 CSS (手机适配核心修复) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 颜色变量 (自适应深浅模式) */
-    :root {
-        /* ☀️ 浅色模式 */
-        --bg-color: #fdfcf0;
-        --text-color: #2c3e50;
-        --box-bg: #ffffff;
-        --box-border: #2c3e50;
-        --revealed-bg: #dfe6e9;
-        --accent-bg: #2c3e50;
-        --accent-text: #ffffff;
-        --bomb-color: #d63031;
-        --hover-bg: #f0f0f0;
+    /* 1. 全局字体和背景 */
+    .stApp {
+        background-color: #fdfcf0;
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+        color: #2c3e50 !important;
     }
-    @media (prefers-color-scheme: dark) {
-        :root {
-            /* 🌙 深色模式 */
-            --bg-color: #1a1a1a;
-            --text-color: #ecf0f1;
-            --box-bg: #2d3436;
-            --box-border: #ecf0f1;
-            --revealed-bg: #404040;
-            --accent-bg: #ecf0f1;
-            --accent-text: #2c3e50;
-            --bomb-color: #ff7675;
-            --hover-bg: #3d3d3d;
+    h1, h2, h3, p, label, span, div, button {
+        color: #2c3e50 !important;
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+    }
+    h1 { text-align: center; margin-bottom: 10px; }
+
+    /* ============================================
+       🚨 手机端强制横排 (Mobile Horizontal Fix) 🚨
+       ============================================ */
+    
+    /* 1. 定义一个特殊的容器 class，用于包裹棋盘 */
+    /* 这个容器内的 columns 绝对禁止堆叠，必须横排 */
+    .board-row-container div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important; /* 强制横向 */
+        flex-wrap: nowrap !important;   /* 禁止换行 */
+        overflow-x: auto !important;    /* 允许左右滑动 */
+        gap: 2px !important;            /* 格子间距 */
+        padding-bottom: 5px;            /* 预留滚动条空间 */
+        
+        /* 居中显示 (如果屏幕够宽) */
+        justify-content: flex-start;    
+    }
+    @media (min-width: 768px) {
+        .board-row-container div[data-testid="stHorizontalBlock"] {
+            justify-content: center !important;
         }
     }
 
-    /* 2. 全局应用 */
-    .stApp {
-        background-color: var(--bg-color) !important;
-        font-family: 'Patrick Hand', cursive, sans-serif !important;
-        color: var(--text-color) !important;
-    }
-    h1, h2, h3, p, label, span, div, button {
-        color: var(--text-color) !important;
-        font-family: 'Patrick Hand', cursive, sans-serif !important;
-    }
-    h1 { text-align: center; }
-
-    /* ============================================================
-       🚨 手机适配核心 (Mobile Responsive Core) 🚨
-       ============================================================ */
-    
-    /* 1. 强制棋盘所在的行【不换行】，并在溢出时【横向滚动】 */
-    /* 这里的 selector 必须很精准，防止影响顶部菜单 */
-    .board-container div[data-testid="stHorizontalBlock"] {
-        flex-wrap: nowrap !important; /* 禁止手机自动换行 */
-        overflow-x: auto !important;  /* 允许左右滑动 */
-        justify-content: flex-start !important; /* 从左对齐，方便滑动 */
-        gap: 2px !important; /* 极小间隙 */
-        
-        /* 隐藏滚动条但保持功能 (Chrome/Safari) */
-        scrollbar-width: none; 
-        -ms-overflow-style: none;
-    }
-    .board-container div[data-testid="stHorizontalBlock"]::-webkit-scrollbar { 
-        display: none; 
-    }
-
-    /* 2. 限制列宽：既不能太小(按不到)，也不能太大 */
-    .board-container div[data-testid="column"] {
-        flex: 0 0 auto !important;
-        width: 38px !important;     /* 手机上最佳触控尺寸 */
-        min-width: 38px !important; /* 绝对不许小于这个 */
+    /* 2. 强制列宽固定，防止被压缩成一条线 */
+    .board-row-container div[data-testid="column"] {
+        width: 40px !important;      /* 手机上合适的宽度 */
+        min-width: 40px !important;  /* 绝对不许小于这个 */
+        max-width: 40px !important;
+        flex: 0 0 40px !important;   /* 禁止弹性伸缩 */
         padding: 0 !important;
         margin: 0 !important;
     }
 
-    /* 3. 锁死格子高度 */
+    /* ============================================
+       格子样式 (防抖 + 涂鸦)
+       ============================================ */
+    
+    /* 锁死按钮容器高度 */
     div.stButton {
-        width: 38px !important;
-        height: 38px !important;
-        min-height: 38px !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-height: 40px !important;
         margin: 0 !important;
+        padding: 0 !important;
         line-height: 1 !important;
     }
 
-    /* ============================================================
-       棋盘格子样式
-       ============================================================ */
-
-    .tile-std {
-        width: 38px !important;
-        height: 38px !important;
-        border: 2px solid var(--box-border) !important;
+    .tile-box {
+        width: 40px !important; height: 40px !important;
+        border: 2px solid #2c3e50 !important;
         border-radius: 4px !important;
         box-sizing: border-box !important;
         display: flex; align-items: center; justify-content: center;
-        line-height: 1 !important;
     }
 
-    /* A. 未揭开 (按钮) */
+    /* 未揭开 */
     button[kind="secondary"] {
-        @extend .tile-std;
-        background-color: var(--box-bg) !important;
+        @extend .tile-box;
+        background-color: #ffffff !important;
         color: transparent !important;
         box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
         padding: 0 !important;
-        transition: none !important;
-    }
-    button[kind="secondary"]:hover {
-        background-color: var(--hover-bg) !important;
-        border-color: var(--box-border) !important;
     }
     button[kind="secondary"]:active {
-        background-color: var(--revealed-bg) !important;
+        background-color: #dfe6e9 !important;
         box-shadow: none !important;
     }
 
-    /* B. 已揭开 (Div) */
+    /* 已揭开 */
     .cell-revealed {
-        @extend .tile-std;
-        background-color: var(--revealed-bg) !important;
-        color: var(--text-color) !important;
-        font-size: 18px; font-weight: bold;
+        @extend .tile-box;
+        background-color: #dfe6e9 !important; 
+        color: #2c3e50 !important;
+        font-size: 20px; font-weight: bold;
         cursor: default;
         box-shadow: none !important;
         margin: 0 !important;
     }
 
-    .cell-bomb { color: var(--bomb-color) !important; font-size: 24px !important; }
+    .cell-bomb { color: #d63031 !important; font-size: 26px !important; }
 
-    /* ============================================================
-       其他控件 (输入框、按钮)
-       ============================================================ */
-    
+    /* ============================================
+       其他控件修复
+       ============================================ */
+    /* 输入框白底黑字 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
-        background-color: var(--box-bg) !important;
-        border: 2px solid var(--box-border) !important;
-        color: var(--text-color) !important;
+        background-color: #ffffff !important;
+        border: 2px solid #2c3e50 !important;
+        color: #000000 !important;
     }
     input[type="number"], div[data-baseweb="select"] span, div[data-testid="stNumberInput"] input {
-        color: var(--text-color) !important;
-        -webkit-text-fill-color: var(--text-color) !important;
-        caret-color: var(--text-color) !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
         font-weight: bold !important;
         text-align: center;
     }
-    div[data-baseweb="select"] svg { fill: var(--text-color) !important; }
+    div[data-baseweb="select"] svg { fill: #000000 !important; }
     div[data-testid="stNumberInput"] button { display: none !important; }
-
-    ul[data-baseweb="menu"] {
-        background-color: var(--box-bg) !important;
-        border: 2px solid var(--box-border) !important;
-    }
-    li[data-baseweb="option"] {
-        background-color: var(--box-bg) !important;
-        color: var(--text-color) !important;
-    }
-    li[data-baseweb="option"]:hover, li[data-baseweb="option"][aria-selected="true"] {
-        background-color: var(--hover-bg) !important;
-        color: var(--text-color) !important;
-    }
+    ul[data-baseweb="menu"] { background-color: #fff !important; border: 2px solid #000 !important; }
+    li[data-baseweb="option"] { color: #000 !important; background-color: #fff !important; }
+    li[data-baseweb="option"]:hover { background-color: #ddd !important; }
 
     /* 功能按钮 */
     button[kind="primary"] {
-        background-color: var(--accent-bg) !important;
-        border: 2px solid var(--box-border) !important;
+        background-color: #2c3e50 !important;
+        border: 2px solid #000 !important;
         width: 100%;
+        min-height: 45px !important;
     }
-    button[kind="primary"] p { color: var(--accent-text) !important; }
-    button[kind="primary"]:hover { opacity: 0.9; }
+    button[kind="primary"] p { color: #fff !important; font-size: 18px !important; }
+    button[kind="primary"]:hover { background-color: #000 !important; }
 
+    /* 数字颜色 */
     .c1 { color: #3498db !important; } .c2 { color: #2ecc71 !important; }
     .c3 { color: #e74c3c !important; } .c4 { color: #9b59b6 !important; }
 
@@ -251,10 +211,13 @@ st.title("Minesweeper")
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
     
-    # 设置栏：为了手机显示正常，使用正常的列宽
-    c1, c2, c3 = st.columns([1, 1, 2])
+    # 设置栏：这里保持正常响应式堆叠
+    c1, sp1, c2, sp2, c3 = st.columns([1, 0.2, 1, 0.2, 2])
+    
     with c1: R = st.number_input("Rows", 5, 20, 10)
+    with sp1: st.empty()
     with c2: C = st.number_input("Cols", 5, 20, 10)
+    with sp2: st.empty()
     with c3: 
         diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
         rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
@@ -268,9 +231,9 @@ if not st.session_state.running:
         st.rerun()
 
 else:
-    # 顶部控制栏：手机上可能需要两行，这里使用自动布局
-    # Home | Mode
-    c1, c2 = st.columns(2)
+    # 顶部栏：正常响应式，手机上自动换行没问题
+    c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
+    
     with c1:
         if st.button("🏠 Home", type="primary", use_container_width=True):
             st.session_state.running = False
@@ -280,14 +243,11 @@ else:
         if st.button(mode, type="primary", use_container_width=True):
             st.session_state.flag = not st.session_state.flag
             st.rerun()
-    
-    # Status | Restart
-    c3, c4 = st.columns([2, 1])
     with c3:
         left = st.session_state.mines - len(st.session_state.flags)
         st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px;'>{left} 💣 Left</div>", unsafe_allow_html=True)
     with c4:
-        if st.button("🔄", type="primary", use_container_width=True):
+        if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
             cfg = st.session_state.game_config
             start(cfg['R'], cfg['C'], cfg['M'])
             st.rerun()
@@ -297,19 +257,19 @@ else:
     if st.session_state.lost: st.markdown(f"<h2 style='text-align:center; color:var(--bomb-color);'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='text-align:center; color:#2ecc71;'>You Win!</h2>", unsafe_allow_html=True)
 
-    # ================= 渲染棋盘 (带横向滚动容器) =================
-    # 使用一个特殊的 div 包裹整个棋盘，加上 class='board-container'
-    st.markdown('<div class="board-container">', unsafe_allow_html=True)
+    # === 棋盘渲染区 ===
+    # 外层容器负责居中
+    st.markdown("<div style='display:flex; justify-content:center;'>", unsafe_allow_html=True)
     
-    # 外层容器居中
-    st.markdown("<div style='display:flex; justify-content:center;'><div>", unsafe_allow_html=True)
+    # 🔴 关键：给棋盘每一行加上 .board-row-container 类，触发 CSS 强制横排 🔴
+    st.markdown('<div class="board-row-container">', unsafe_allow_html=True)
     
     board = st.session_state.board
     vis = st.session_state.revealed
     flg = st.session_state.flags
     
     for r in range(st.session_state.rows):
-        # 这里生成的 columns 会被 CSS 强制不换行 + 允许滑动
+        # 这里生成的每一行 columns，会被外层的 CSS 强制变成 nowrap (不换行)
         cols = st.columns([1] * st.session_state.cols)
         
         for c in range(st.session_state.cols):
@@ -340,6 +300,6 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        st.markdown(f"<div class='cell-revealed' style='background-color:var(--box-bg) !important; opacity:0.6;'>{label}</div>", unsafe_allow_html=True)
-
-    st.markdown("</div></div></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='cell-revealed' style='background-color:#fff !important; opacity:0.6;'>{label}</div>", unsafe_allow_html=True)
+    
+    st.markdown("</div></div>", unsafe_allow_html=True)
