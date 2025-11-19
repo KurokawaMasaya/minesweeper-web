@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Readable Minesweeper", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Minesweeper Stable", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 (保持不变) =================
+# ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
@@ -66,78 +66,82 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS (暴力高对比修复) =================
+# ================= 🎨 CSS (去特效保可读性版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 全局文字强制黑色 */
+    /* 1. 全局字体和背景 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
         color: #000000 !important;
     }
     
-    h1, h2, h3, h4, p, label, span, div {
+    /* 强制所有普通文本为黑色 */
+    h1, h2, h3, p, label, span, div {
         color: #000000 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
+    h1 { text-align: center; }
 
     /* ============================================================
-       🚨 终极修复：输入框可见性 (White Background / Black Text) 🚨
+       ✅ 修复重点：输入框/下拉框 (死板的白底黑字，不要任何特效)
        ============================================================ */
     
-    /* 1. 强制所有输入框容器：白底、黑字、黑边框 */
+    /* 输入框容器：白底黑框 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
         background-color: #ffffff !important;
-        color: #000000 !important;
         border: 2px solid #000000 !important;
+        color: #000000 !important;
         border-radius: 4px !important;
     }
 
-    /* 2. 强制输入框内部文字：纯黑 */
+    /* 输入框内的文字：纯黑 */
     input[type="number"], 
-    div[data-baseweb="select"] span,
-    div[data-testid="stNumberInput"] input {
+    div[data-baseweb="select"] span {
         color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important; /* 兼容 Safari/Chrome */
+        -webkit-text-fill-color: #000000 !important; /* 兼容性强制 */
         caret-color: #000000 !important;
         font-weight: bold !important;
         font-size: 18px !important;
         text-align: center;
     }
 
-    /* 3. 下拉箭头图标：纯黑 */
+    /* 下拉箭头：黑色 */
     div[data-baseweb="select"] svg {
         fill: #000000 !important;
         color: #000000 !important;
     }
 
-    /* 4. 隐藏数字输入框的 +/- 按钮 (避免干扰) */
+    /* 隐藏数字输入框的 +/- 按钮 */
     div[data-testid="stNumberInput"] button {
         display: none !important;
     }
 
-    /* 5. 下拉菜单弹出层：白底黑字 */
+    /* === 下拉菜单弹出层 === */
+    /* 菜单框：白底 */
     ul[data-baseweb="menu"] {
         background-color: #ffffff !important;
         border: 2px solid #000000 !important;
     }
+    /* 每一个选项：白底黑字 (不管选中没选中，字永远黑) */
     li[data-baseweb="option"] {
         color: #000000 !important;
         background-color: #ffffff !important;
+        font-weight: bold !important;
     }
-    /* 选项文字内容 */
-    li[data-baseweb="option"] div {
-        color: #000000 !important;
-    }
-    /* 悬停/选中状态 */
+    /* 鼠标放上去/选中时：变成浅灰底，字还是黑的 */
     li[data-baseweb="option"]:hover,
     li[data-baseweb="option"][aria-selected="true"] {
         background-color: #e0e0e0 !important;
+        color: #000000 !important;
+    }
+    /* 确保选项里的子元素也是黑字 */
+    li[data-baseweb="option"] div {
         color: #000000 !important;
     }
 
@@ -166,7 +170,7 @@ st.markdown("""
         box-sizing: border-box !important;
     }
 
-    /* 未揭开 */
+    /* 未揭开：白底 */
     button[kind="secondary"] {
         @extend .tile-box;
         width: 40px !important; height: 40px !important;
@@ -180,7 +184,7 @@ st.markdown("""
         background-color: #f9f9f9 !important;
     }
 
-    /* 已揭开 */
+    /* 已揭开：灰底 */
     .cell-revealed {
         width: 40px !important; height: 40px !important;
         border: 2px solid #2c3e50 !important;
@@ -215,11 +219,10 @@ st.markdown("""
 
 st.title("Minesweeper")
 
-# 1. 设置界面
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
     
-    # 布局：输入框之间留空隙
+    # 使用 Spacer 隔开，布局清爽
     c1, sp1, c2, sp2, c3 = st.columns([1, 0.5, 1, 0.5, 2])
     
     with c1:
@@ -240,9 +243,8 @@ if not st.session_state.running:
         start(R, C, M)
         st.rerun()
 
-# 2. 游戏界面
 else:
-    # 布局：Home | 模式 | 剩余雷数 | 重开
+    # 顶部栏：Home | Mode | Status | Restart
     c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
     
     with c1:
@@ -263,6 +265,7 @@ else:
             unsafe_allow_html=True)
             
     with c4:
+        # 快速重开
         if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
             cfg = st.session_state.game_config
             start(cfg['R'], cfg['C'], cfg['M'])
@@ -273,7 +276,7 @@ else:
     if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
-    # === 渲染网格 ===
+    # 渲染网格
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
     board = st.session_state.board
@@ -285,8 +288,8 @@ else:
         for c in range(st.session_state.cols):
             with cols[c]:
                 key = f"{r}_{c}"
-                is_rev = (r,c) in vis
-                is_flg = (r,c) in flg
+                is_rev = (r, c) in vis
+                is_flg = (r, c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
                 if is_rev or (end and board[r][c] == -1):
@@ -297,14 +300,13 @@ else:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<div class='cell-revealed c{val}'>{val}</div>", unsafe_allow_html=True)
-                
                 else:
                     label = "P" if is_flg else " "
                     if not end:
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
-                                if is_flg: flg.remove((r,c))
-                                else: flg.add((r,c))
+                                if is_flg: flg.remove((r, c))
+                                else: flg.add((r, c))
                                 st.rerun()
                             elif not is_flg:
                                 if not reveal(board, vis, flg, r, c):
