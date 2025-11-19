@@ -2,7 +2,7 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Minesweeper Final Readable", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Minesweeper Clean Input", layout="centered", page_icon="🖍️")
 
 # ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
@@ -63,86 +63,74 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 CSS 样式 (强制白底黑字) =================
+# ================= 🎨 CSS 样式 (隐藏 +/- 版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 全局字体和背景 */
+    /* 1. 全局设置 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
-    
-    /* 强制所有显示文本为深色 */
-    h1, h2, h3, p, label, span, div {
+    h1, h2, h3, p, span, div, label, button {
         color: #2c3e50 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
     h1 { text-align: center; color: #000 !important; }
 
     /* ============================================================
-       🚨 修复：输入框可见性 (Input Visibility) 🚨
-       强制所有输入框组件为：白底、黑字、黑框
+       🔧 修复: 输入框样式 (白底黑字 + 隐藏按钮)
        ============================================================ */
     
-    /* 1. 输入框容器 */
+    /* 输入框外壳：白底黑框 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
-        background-color: #ffffff !important; /* 纯白背景 */
-        border: 2px solid #000000 !important; /* 纯黑边框 */
-        color: #000000 !important;            /* 纯黑文字 */
+        background-color: #ffffff !important;
+        border: 2px solid #2c3e50 !important;
+        color: #000000 !important;
         border-radius: 6px !important;
     }
 
-    /* 2. 输入框内的文字值 */
-    div[data-testid="stNumberInput"] input, 
-    div[data-baseweb="select"] div {
+    /* 输入框内的文字：纯黑 */
+    input[type="number"], div[data-baseweb="select"] span {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
         caret-color: #000000 !important;
         font-weight: bold !important;
+        font-size: 18px !important;
+        text-align: center; /* 让数字居中更好看 */
     }
 
-    /* 3. 修复加减号 (+/-) 图标 */
+    /* 🚨🚨🚨 核心修改：隐藏 +/- 步进按钮 🚨🚨🚨 */
     div[data-testid="stNumberInput"] button {
-        background-color: transparent !important;
-        border-left: 1px solid #ccc !important;
-    }
-    div[data-testid="stNumberInput"] svg {
-        fill: #000000 !important; /* 强制黑色图标 */
-        color: #000000 !important;
+        display: none !important;
     }
 
-    /* 4. 修复下拉菜单弹出层 (Dropdown Menu) */
+    /* 下拉菜单 */
     ul[data-baseweb="menu"] {
-        background-color: #ffffff !important; /* 白底 */
-        border: 2px solid #000000 !important;
+        background-color: #ffffff !important;
+        border: 2px solid #2c3e50 !important;
     }
     li[data-baseweb="option"] {
-        color: #000000 !important; /* 黑字 */
+        color: #000000 !important;
         background-color: #ffffff !important;
     }
-    /* 选中或悬停项 */
-    li[data-baseweb="option"][aria-selected="true"],
     li[data-baseweb="option"]:hover {
         background-color: #e0e0e0 !important;
-        color: #000000 !important;
     }
 
     /* ============================================================
-       棋盘样式 (蜡笔方块 - 有缝隙)
+       棋盘样式
        ============================================================ */
     
-    /* 恢复默认间距，让方块分开 */
     div[data-testid="stHorizontalBlock"] {
         gap: 0.5rem !important;
         justify-content: center !important;
     }
 
-    /* 统一列宽 */
     div[data-testid="column"] {
         width: 44px !important;
         flex: 0 0 44px !important;
@@ -150,32 +138,30 @@ st.markdown("""
         padding: 2px !important;
     }
 
-    /* 统一方块模型 */
     .tile-box {
         width: 40px !important;
         height: 40px !important;
         border-radius: 4px !important;
         border: 2px solid #2c3e50 !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: flex; align-items: center; justify-content: center;
         box-sizing: border-box !important;
     }
 
-    /* 1. 未揭开 (按钮) -> 亮白悬浮 */
+    /* 未揭开 */
     button[kind="secondary"] {
         @extend .tile-box;
         width: 40px !important; height: 40px !important;
         background-color: #ffffff !important;
         color: transparent !important;
-        box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
+        border: 2px solid #2c3e50 !important;
     }
     button[kind="secondary"]:hover {
         transform: translate(-1px, -1px);
         background-color: #f9f9f9 !important;
     }
 
-    /* 2. 已揭开 (Div) -> 浅灰平铺 */
+    /* 已揭开 */
     .cell-revealed {
         width: 40px !important; height: 40px !important;
         border: 2px solid #2c3e50 !important;
@@ -187,15 +173,17 @@ st.markdown("""
         font-size: 20px; font-weight: bold;
         cursor: default;
         display: flex; align-items: center; justify-content: center;
+        box-shadow: none !important;
     }
 
-    /* 炸弹样式 */
+    /* 炸弹 */
     .cell-bomb {
-        color: #d63031 !important; /* 红色 */
+        color: #d63031 !important;
         font-size: 28px !important;
+        line-height: 1;
     }
 
-    /* 开始按钮 */
+    /* Start 按钮 */
     button[kind="primary"] {
         background-color: #2c3e50 !important;
         border: 2px solid #000 !important;
@@ -204,11 +192,8 @@ st.markdown("""
     button[kind="primary"] p { color: #fff !important; font-size: 20px !important; }
     button[kind="primary"]:hover { background-color: #000 !important; }
 
-    /* 数字颜色 */
-    .c1 { color: #0984e3 !important; }
-    .c2 { color: #00b894 !important; }
-    .c3 { color: #d63031 !important; }
-    .c4 { color: #6c5ce7 !important; }
+    .c1 { color: #0984e3 !important; } .c2 { color: #00b894 !important; }
+    .c3 { color: #d63031 !important; } .c4 { color: #6c5ce7 !important; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -256,7 +241,7 @@ else:
     if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
-    # === 渲染网格 (有缝隙版) ===
+    # === 渲染网格 ===
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
     board = st.session_state.board
@@ -275,7 +260,7 @@ else:
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        # 红色蜡笔X
+                        # 红色蜡笔 X
                         st.markdown("<div class='cell-revealed cell-bomb'>X</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
