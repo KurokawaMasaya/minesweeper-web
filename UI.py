@@ -2,7 +2,7 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Crayon Tiles", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Minesweeper Final Readable", layout="centered", page_icon="🖍️")
 
 # ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
@@ -63,130 +63,136 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 CSS 样式 (精准控制版) =================
+# ================= 🎨 CSS 样式 (强制白底黑字) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. App 背景 */
+    /* 1. 全局字体和背景 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
-
-    /* 2. 仅针对游戏内的文字应用手写体和颜色，不破坏系统菜单 */
-    .stMarkdown, .stButton, .stSelectbox, .stNumberInput, h1 {
-        font-family: 'Patrick Hand', cursive, sans-serif !important;
-        color: #2c3e50;
-    }
     
-    h1 { text-align: center; color: #000 !important; margin-bottom: 10px; }
+    /* 强制所有显示文本为深色 */
+    h1, h2, h3, p, label, span, div {
+        color: #2c3e50 !important;
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+    }
+    h1 { text-align: center; color: #000 !important; }
 
     /* ============================================================
-       修复: 输入框样式 (白底黑字)
+       🚨 修复：输入框可见性 (Input Visibility) 🚨
+       强制所有输入框组件为：白底、黑字、黑框
        ============================================================ */
+    
+    /* 1. 输入框容器 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
-        background-color: #ffffff !important;
-        border: 2px solid #2c3e50 !important;
+        background-color: #ffffff !important; /* 纯白背景 */
+        border: 2px solid #000000 !important; /* 纯黑边框 */
+        color: #000000 !important;            /* 纯黑文字 */
         border-radius: 6px !important;
-        color: #000 !important;
     }
-    
-    /* 输入框内文字 */
-    input.st-bd, input.st-be, div[data-baseweb="select"] span {
-        color: #000 !important;
-        font-weight: bold !important;
-        font-size: 18px !important;
-        -webkit-text-fill-color: #000 !important;
-    }
-    
-    /* 修复数字框右侧按钮 */
-    div[data-testid="stNumberInput"] svg { fill: #000 !important; }
-    div[data-testid="stNumberInput"] > div > div { background-color: #fff !important; border-left: 1px solid #ccc !important; }
 
-    /* 下拉菜单选项 */
-    ul[data-baseweb="menu"] { background-color: #fff !important; border: 2px solid #2c3e50 !important; }
-    li[data-baseweb="option"] { color: #000 !important; }
+    /* 2. 输入框内的文字值 */
+    div[data-testid="stNumberInput"] input, 
+    div[data-baseweb="select"] div {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        caret-color: #000000 !important;
+        font-weight: bold !important;
+    }
+
+    /* 3. 修复加减号 (+/-) 图标 */
+    div[data-testid="stNumberInput"] button {
+        background-color: transparent !important;
+        border-left: 1px solid #ccc !important;
+    }
+    div[data-testid="stNumberInput"] svg {
+        fill: #000000 !important; /* 强制黑色图标 */
+        color: #000000 !important;
+    }
+
+    /* 4. 修复下拉菜单弹出层 (Dropdown Menu) */
+    ul[data-baseweb="menu"] {
+        background-color: #ffffff !important; /* 白底 */
+        border: 2px solid #000000 !important;
+    }
+    li[data-baseweb="option"] {
+        color: #000000 !important; /* 黑字 */
+        background-color: #ffffff !important;
+    }
+    /* 选中或悬停项 */
+    li[data-baseweb="option"][aria-selected="true"],
+    li[data-baseweb="option"]:hover {
+        background-color: #e0e0e0 !important;
+        color: #000000 !important;
+    }
 
     /* ============================================================
-       样式: 蜡笔方块棋盘 (有缝隙版)
+       棋盘样式 (蜡笔方块 - 有缝隙)
        ============================================================ */
     
-    /* 恢复 Streamlit 默认间距，不再强制 gap: 0 */
-    
-    /* 限制列宽，让格子是正方形的 */
+    /* 恢复默认间距，让方块分开 */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0.5rem !important;
+        justify-content: center !important;
+    }
+
+    /* 统一列宽 */
     div[data-testid="column"] {
         width: 44px !important;
         flex: 0 0 44px !important;
         min-width: 44px !important;
-        padding: 2px !important; /* 这里的 padding 就是缝隙 */
-    }
-    
-    /* 居中对齐 */
-    div[data-testid="stHorizontalBlock"] {
-        justify-content: center !important;
+        padding: 2px !important;
     }
 
-    /* 统一方块样式 */
+    /* 统一方块模型 */
     .tile-box {
         width: 40px !important;
         height: 40px !important;
-        border-radius: 4px !important; /* 轻微圆角，像手绘 */
-        border: 2px solid #2c3e50 !important; /* 粗黑边 */
+        border-radius: 4px !important;
+        border: 2px solid #2c3e50 !important;
         display: flex;
         align-items: center;
         justify-content: center;
         box-sizing: border-box !important;
     }
 
-    /* 1. 未揭开 (按钮) - 亮白悬浮 */
+    /* 1. 未揭开 (按钮) -> 亮白悬浮 */
     button[kind="secondary"] {
         @extend .tile-box;
         width: 40px !important; height: 40px !important;
-        border: 2px solid #2c3e50 !important;
-        border-radius: 4px !important;
         background-color: #ffffff !important;
         color: transparent !important;
-        
-        /* 加一点手绘阴影 */
         box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
-        transition: transform 0.1s;
     }
     button[kind="secondary"]:hover {
         transform: translate(-1px, -1px);
-        box-shadow: 3px 3px 0px rgba(0,0,0,0.2) !important;
         background-color: #f9f9f9 !important;
     }
-    button[kind="secondary"]:active {
-        transform: translate(1px, 1px);
-        box-shadow: 1px 1px 0px rgba(0,0,0,0.2) !important;
-    }
 
-    /* 2. 已揭开 (Div) - 浅灰平铺 */
+    /* 2. 已揭开 (Div) -> 浅灰平铺 */
     .cell-revealed {
         width: 40px !important; height: 40px !important;
         border: 2px solid #2c3e50 !important;
         border-radius: 4px !important;
         box-sizing: border-box !important;
         
-        background-color: #e0e0e0 !important; /* 明显的灰 */
+        background-color: #dfe6e9 !important; 
         color: #2c3e50 !important;
         font-size: 20px; font-weight: bold;
         cursor: default;
-        
         display: flex; align-items: center; justify-content: center;
-        /* 已揭开没有阴影，看起来是平的 */
-        box-shadow: none !important;
     }
 
     /* 炸弹样式 */
     .cell-bomb {
-        color: #d63031 !important; /* 蜡笔红 */
+        color: #d63031 !important; /* 红色 */
         font-size: 28px !important;
-        line-height: 1;
     }
 
     /* 开始按钮 */
@@ -214,7 +220,6 @@ st.title("Minesweeper")
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
     
-    # 这里不需要 spacer 了，因为有自然间距
     c1, c2, c3 = st.columns([1, 1, 1.5])
     
     with c1: R = st.number_input("Rows", 5, 20, 10)
@@ -252,7 +257,6 @@ else:
     if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
     # === 渲染网格 (有缝隙版) ===
-    # 不需要 board-wrap 了，因为是散开的方块
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
     board = st.session_state.board
@@ -268,7 +272,6 @@ else:
                 is_flg = (r,c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
-                # 1. 已揭开
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
@@ -279,7 +282,6 @@ else:
                     else:
                         st.markdown(f"<div class='cell-revealed c{val}'>{val}</div>", unsafe_allow_html=True)
                 
-                # 2. 未揭开
                 else:
                     label = "P" if is_flg else " "
                     if not end:
