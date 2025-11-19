@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Perfect Grid Minesweeper", layout="centered", page_icon="📐")
+st.set_page_config(page_title="Final Readable Fix", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 =================
+# ================= 核心逻辑 (不变) =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -63,139 +63,154 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 终极 CSS 修复 =================
+# ================= 🎨 终极修复 CSS (白底黑字版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 全局字体和背景 */
+    /* 全局重置 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
     
-    /* 强制所有文本深色 */
-    h1, p, label, span, div, button {
+    h1, h2, h3, p, span, div, label, button {
         color: #2c3e50 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
-    
-    /* 标题居中加黑 */
-    h1 { color: #000 !important; text-align: center; }
 
     /* ============================================================
-       🔧 修复 1: 输入框样式 (黑底白字)
+       🔧 修复 1: 输入框 (Input Fields) -> 白底黑字 + 粗黑边框
        ============================================================ */
+    
+    /* 输入框外壳 */
     div[data-baseweb="select"] > div, 
-    div[data-baseweb="input"] > div {
-        background-color: #2c3e50 !important;
-        border: 2px solid #000 !important;
-        color: white !important;
+    div[data-baseweb="input"] > div,
+    div[data-testid="stNumberInput"] > div {
+        background-color: #ffffff !important; /* 必须纯白 */
+        border: 2px solid #2c3e50 !important; /* 粗黑框 */
+        color: #000000 !important;
         border-radius: 4px !important;
     }
-    div[data-baseweb="select"] span, 
-    div[data-testid="stNumberInput"] input {
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-        caret-color: white !important;
+
+    /* 输入框内的文字 */
+    input.st-bd, input.st-be, div[data-baseweb="select"] span {
+        color: #000000 !important; /* 纯黑文字 */
+        -webkit-text-fill-color: #000000 !important;
+        caret-color: #000000 !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+    }
+
+    /* 数字输入框的 +/- 按钮图标颜色修复 */
+    div[data-testid="stNumberInput"] svg {
+        fill: #000000 !important; /* 强制变成黑色 */
+        color: #000000 !important;
+    }
+
+    /* 下拉菜单弹出层 (Popover) */
+    ul[data-baseweb="menu"] {
+        background-color: #ffffff !important;
+        border: 2px solid #2c3e50 !important;
+    }
+    li[data-baseweb="option"] {
+        color: #000000 !important;
         font-weight: bold !important;
     }
-    div[data-baseweb="select"] svg { fill: white !important; }
+    /* 选中状态 */
+    li[data-baseweb="option"][aria-selected="true"] {
+        background-color: #f0f0f0 !important;
+    }
+
+    /* 标题文字 */
+    div[data-testid="stMarkdownContainer"] p {
+        font-size: 20px !important;
+        font-weight: bold !important;
+    }
 
     /* ============================================================
-       🔧 修复 2: 棋盘完全无缝 (井字棋)
-       关键在于：强制列宽收缩 (flex: 0 0 auto)，不让它自动拉伸
+       🔧 修复 2: 棋盘样式 (无缝 + 强制对齐)
        ============================================================ */
 
-    /* 1. 行容器：去除间距，居中对齐 */
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0 !important;
-        justify-content: center !important; /* 关键：让挤在一起的列居中 */
-    }
+    /* 消除列间距 */
+    div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
     
-    /* 2. 列容器：强制收缩！禁止拉伸！ */
+    /* 强制列宽收缩 */
     div[data-testid="column"] {
-        flex: 0 0 auto !important; /* 关键：宽度由内容决定，不要自动平分屏幕 */
+        flex: 0 0 auto !important;
         width: auto !important;
         min-width: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        padding: 0 !important; margin: 0 !important;
     }
 
-    /* 3. 统一格子模型 (按钮 & 已揭开) */
-    button[kind="secondary"], .cell-revealed {
-        width: 40px !important;
-        height: 40px !important;
-        border: 1px solid #000 !important;
-        border-radius: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        
-        /* 负边距：消除双重边框 */
-        margin-right: -1px !important;
-        margin-bottom: -1px !important;
-        
+    /* 统一盒子标准 */
+    .unified-box {
+        width: 40px !important; height: 40px !important;
         box-sizing: border-box !important;
-        display: flex !important; 
-        align-items: center !important; 
-        justify-content: center !important;
+        border: 1px solid #2c3e50 !important;
+        margin-right: -1px !important; margin-bottom: -1px !important;
+        display: flex; align-items: center; justify-content: center;
+        line-height: 1 !important;
     }
 
-    /* 4. 未揭开 (白纸) */
+    /* 按钮 (未揭开) - 纯白 */
     button[kind="secondary"] {
+        @extend .unified-box;
+        width: 40px !important; height: 40px !important;
+        border: 1px solid #2c3e50 !important;
+        border-radius: 0 !important; padding: 0 !important;
+        margin: 0 !important; margin-right: -1px !important; margin-bottom: -1px !important;
+        
         background-color: #ffffff !important;
         color: transparent !important;
-        z-index: 10; /* 浮在上面 */
+        z-index: 10;
     }
-    button[kind="secondary"]:hover {
-        background-color: #f0f0f0 !important;
-        z-index: 20;
-    }
+    button[kind="secondary"]:hover { background-color: #f0f0f0 !important; }
 
-    /* 5. 已揭开 (深灰凹陷) */
+    /* 已揭开 (深灰) */
     .cell-revealed {
-        background-color: #999999 !important;
-        color: #fff !important;
+        width: 40px !important; height: 40px !important;
+        border: 1px solid #2c3e50 !important;
+        box-sizing: border-box !important;
+        margin-right: -1px !important; margin-bottom: -1px !important;
+        
+        background-color: #b2bec3 !important;
+        color: #fff !important; 
         font-size: 22px; font-weight: bold;
         cursor: default; z-index: 1;
+        
+        display: flex; align-items: center; justify-content: center;
     }
 
     /* 炸弹样式 (蜡笔红X) */
     .cell-bomb {
-        background-color: #999999 !important; /* 背景同普通已揭开 */
+        background-color: #b2bec3 !important; 
         color: #d63031 !important;
-        font-size: 30px !important;
+        font-size: 32px !important;
     }
 
-    /* 外框装饰 (包裹整个棋盘) */
-    .board-wrap {
-        display: inline-block;
-        border-top: 2px solid #000;
-        border-left: 2px solid #000;
-        line-height: 0;
-        margin-top: 20px;
-    }
-
-    /* ============================================================
-       🔧 修复 3: 开始按钮
-       ============================================================ */
+    /* 开始按钮 */
     button[kind="primary"] {
         background-color: #2c3e50 !important;
-        border: 3px solid #000 !important;
+        border: 2px solid #000 !important;
+        border-radius: 8px !important;
         width: 100%;
     }
-    button[kind="primary"] p {
-        color: #ffffff !important;
-        font-size: 20px !important;
-    }
+    button[kind="primary"] p { color: #ffffff !important; font-size: 20px !important; }
     button[kind="primary"]:hover { background-color: #000 !important; }
 
-    /* 数字颜色 */
-    .c1 { color: #cbf3f0 !important; text-shadow: 1px 1px 0 #000; }
-    .c2 { color: #b5e48c !important; text-shadow: 1px 1px 0 #000; }
-    .c3 { color: #ff99c8 !important; text-shadow: 1px 1px 0 #000; }
+    /* 外框装饰 */
+    .board-wrap {
+        display: inline-block;
+        border-top: 2px solid #2c3e50; border-left: 2px solid #2c3e50;
+        line-height: 0; margin-top: 20px;
+    }
     
+    /* 数字颜色 */
+    .c1 { color: #00cec9 !important; text-shadow: 1px 1px 0 #555; }
+    .c2 { color: #6c5ce7 !important; text-shadow: 1px 1px 0 #555; }
+    .c3 { color: #fdcb6e !important; text-shadow: 1px 1px 0 #555; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -206,8 +221,8 @@ st.title("Minesweeper")
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
     
-    # 使用 Spacer 列来物理隔开输入框
-    c1, sp1, c2, sp2, c3 = st.columns([1, 0.2, 1, 0.2, 1.5])
+    # 【布局调整】加大 Spacer 的比例 (0.2 -> 0.5)，防止输入框粘连
+    c1, sp1, c2, sp2, c3 = st.columns([1, 0.5, 1, 0.5, 2])
     
     with c1: R = st.number_input("Rows", 5, 20, 10)
     with sp1: st.empty()
@@ -254,9 +269,7 @@ else:
     flg = st.session_state.flags
     
     for r in range(st.session_state.rows):
-        # 注意：这里必须把 columns 对象存下来，利用上下文管理器逐个渲染
         cols = st.columns(st.session_state.cols)
-        
         for c in range(st.session_state.cols):
             with cols[c]:
                 key = f"{r}_{c}"
@@ -268,14 +281,13 @@ else:
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        # 炸弹：蜡笔红 X
                         st.markdown("<div class='cell-revealed cell-bomb'>X</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<div class='cell-revealed c{val}'>{val}</div>", unsafe_allow_html=True)
                 
-                # 2. 未揭开 (按钮)
+                # 2. 未揭开
                 else:
                     label = "P" if is_flg else " "
                     if not end:
@@ -289,7 +301,6 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 游戏结束后的未揭开区域
                         st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
