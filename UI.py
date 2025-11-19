@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Minesweeper Custom", layout="centered", page_icon="💣")
+st.set_page_config(page_title="Minesweeper Balanced", layout="centered", page_icon="💣")
 
-# ================= 核心逻辑 =================
+# ================= 核心逻辑 (原版 MS.py) =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -17,7 +17,6 @@ def init_board(R, C): return [[0]*C for _ in range(R)]
 
 def place(board, mines):
     R, C = len(board), len(board[0])
-    # 确保雷数不超过格子总数-1 (至少留一个空位)
     mines = max(0, min(mines, R * C - 1))
     all_cells = [(r, c) for r in range(R) for c in range(C)]
     mine_positions = set(random.sample(all_cells, mines)) if mines > 0 else set()
@@ -64,8 +63,7 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 CSS 样式 (保持修复版布局) =================
-
+# ================= 🎨 UI 样式 (保持修复版) =================
 st.markdown("""
 <style>
     .stApp {
@@ -74,16 +72,14 @@ st.markdown("""
     }
     h1 { color: white; text-align: center; margin-bottom: 20px; }
 
-    /* --- 按钮样式分离 --- */
-    
-    /* 1. 雷区格子 (Secondary) -> 强制正方形小格 */
+    /* 格子按钮 (Secondary) - 强制正方形 */
     button[kind="secondary"] {
         width: 40px !important;
         height: 40px !important;
         padding: 0 !important;
-        border-radius: 4px !important;
         border: 1px solid #4a4e69 !important;
         background-color: #8d99ae !important;
+        border-radius: 4px !important;
         color: transparent !important;
         transition: transform 0.1s;
     }
@@ -92,34 +88,34 @@ st.markdown("""
         transform: scale(1.05);
     }
     
-    /* 2. 功能按钮 (Primary) -> 宽度自适应 */
+    /* 功能按钮 (Primary) - 宽度自适应 */
     button[kind="primary"] {
         width: auto !important;
+        min-width: 100px !important;
         height: auto !important;
-        min-width: 120px;
-        padding: 10px 24px !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
+        padding: 10px 20px !important;
         background: #ef233c !important;
         color: white !important;
         border: none !important;
+        border-radius: 8px !important;
+        font-weight: bold !important;
     }
     button[kind="primary"]:hover {
         background: #d90429 !important;
     }
     
-    /* 3. 已揭开格子 */
+    /* 已揭开的格子 */
     .cell-revealed {
         width: 40px; height: 40px;
         display: flex; align-items: center; justify-content: center;
         background: #edf2f4;
         border-radius: 4px;
         font-weight: 900;
-        font-size: 20px;
+        font-size: 18px;
         color: #2b2d42;
     }
     
-    /* 4. 布局修正 */
+    /* 布局控制 */
     div[data-testid="column"] {
         width: 40px !important;
         flex: unset !important;
@@ -128,11 +124,10 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] {
         justify-content: center;
     }
-    
+
     /* 数字颜色 */
     .n1{color:#3a86ff} .n2{color:#38b000} .n3{color:#fb5607} .n4{color:#8338ec} 
     .n5{color:#ff006e} .n6{color:#00f5d4} .n7{color:#2b2d42} .n8{color:#8d99ae}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -140,42 +135,39 @@ st.markdown("""
 
 st.title("Minesweeper")
 
-# --- 1. 游戏设置 (恢复自定义功能) ---
+# --- 1. 游戏设置 ---
 if not st.session_state.running:
     with st.container(border=True):
-        st.subheader("🛠 Game Setup / 游戏设置")
+        st.subheader("🛠 Game Setup")
         
-        # 第一行：设置行和列 (恢复 Slider/NumberInput)
-        c_row, c_col = st.columns(2)
-        with c_row:
-            R = st.number_input("Rows (行)", min_value=5, max_value=20, value=10)
-        with c_col:
-            C = st.number_input("Columns (列)", min_value=5, max_value=20, value=10)
+        # 行列设置
+        c1, c2 = st.columns(2)
+        with c1:
+            R = st.number_input("Rows (行)", 5, 20, 10)
+        with c2:
+            C = st.number_input("Cols (列)", 5, 20, 10)
             
-        # 第二行：设置难度 (按你要求的倍率)
-        diff = st.selectbox("Difficulty (难度)", ["Easy (0.3)", "Medium (0.5)", "Hard (0.7)"])
+        # 难度设置 (修改为合理的比例)
+        diff_label = st.selectbox("Difficulty", ["Easy (10%)", "Medium (15%)", "Hard (20%)"])
         
-        # 计算雷数
-        rate = 0.3 # 默认 Easy
-        if "Medium" in diff: rate = 0.5
-        elif "Hard" in diff: rate = 0.7
-            
-        # 按照你的公式：难度系数 * 格子总数
-        total_cells = R * C
-        M = int(total_cells * rate)
-        M = max(1, min(M, total_cells - 1)) # 基础保护，防止雷数超过格子数
+        # 设置倍率
+        if "Easy" in diff_label: rate = 0.10
+        elif "Medium" in diff_label: rate = 0.15
+        else: rate = 0.20
+        
+        M = int(R * C * rate)
+        M = max(1, M) # 至少1个雷
         
         st.write(f"**Mines:** {M} (Density: {int(rate*100)}%)")
         
         st.write("")
-        # START 按钮
         if st.button("🚀 Start Game", type="primary", use_container_width=True):
             start(R, C, M)
             st.rerun()
 
 # --- 2. 游戏界面 ---
 else:
-    # 顶部信息栏
+    # 顶部控制栏
     c1, c2, c3 = st.columns([1.5, 2, 1.5])
     
     with c2:
@@ -186,28 +178,25 @@ else:
         st.info(f"Mines: {left} | {status}")
     
     with c1:
-        # 模式切换
         mode = "🚩 Flag Mode" if st.session_state.flag else "⛏️ Dig Mode"
         if st.button(mode, type="primary", use_container_width=True):
             st.session_state.flag = not st.session_state.flag
             st.rerun()
             
     with c3:
-        # 重开
         if st.button("🔄 Restart", type="primary", use_container_width=True):
             st.session_state.running = False
             st.rerun()
 
     st.markdown("---")
+    
+    if st.session_state.lost: st.error("BOOM! Game Over!")
+    if st.session_state.won: st.success("Congratulations!")
 
-    # 渲染棋盘
     board = st.session_state.board
     vis = st.session_state.revealed
     flg = st.session_state.flags
     
-    if st.session_state.lost: st.error("BOOM! You hit a mine!")
-    if st.session_state.won: st.success("Congratulations! All cleared!")
-
     for r in range(st.session_state.rows):
         cols = st.columns(st.session_state.cols)
         for c in range(st.session_state.cols):
@@ -217,20 +206,17 @@ else:
                 is_flg = (r,c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
-                # 逻辑分支：显示内容 or 显示按钮
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        st.markdown("<div class='cell-revealed' style='background:#ffccd5;'>💣</div>", unsafe_allow_html=True)
+                        st.markdown("<div class='cell-revealed' style='background:#ef233c; color:white;'>💣</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<div class='cell-revealed n{val}'>{val}</div>", unsafe_allow_html=True)
                 else:
-                    # 按钮逻辑
                     label = "🚩" if is_flg else " "
                     if not end:
-                        # 游戏进行中：可点击的按钮 (Secondary)
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
                                 if is_flg: flg.remove((r,c))
@@ -241,5 +227,4 @@ else:
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        # 游戏结束：静态展示
-                        st.markdown(f"<div class='cell-revealed' style='background:#b0c4b1;color:#fff'>{label}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='cell-revealed' style='background:#8d99ae;color:white'>{label}</div>", unsafe_allow_html=True)
