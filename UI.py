@@ -1,11 +1,10 @@
 import streamlit as st
 import random
-import time
 
 # 页面配置
-st.set_page_config(page_title="Minesweeper Final", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Minesweeper Clean Input", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 (保持不变) =================
+# ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
     for dr in (-1,0,1):
         for dc in (-1,0,1):
@@ -45,44 +44,47 @@ def reveal(board, vis, flg, r, c):
     else: vis.add((r,c))
     return True
 
-def start_game(R, C, M):
+def start(R,C,M):
     b = init_board(R,C)
+    M = max(0, min(M, R * C - 1))
     place(b,M)
     st.session_state.board = b
-    st.session_state.revealed = set()
-    st.session_state.flags = set()
-    st.session_state.rows = R
-    st.session_state.cols = C
-    st.session_state.mines = M
-    st.session_state.running = True
-    st.session_state.lost = False
-    st.session_state.won = False
-    # 记住当前配置，用于快速 Restart
-    st.session_state.config = {"R": R, "C": C, "M": M}
+    st.session_state.revealed=set()
+    st.session_state.flags=set()
+    st.session_state.rows=R
+    st.session_state.cols=C
+    st.session_state.mines=M
+    st.session_state.running=True
+    st.session_state.lost=False
+    st.session_state.won=False
 
-if "running" not in st.session_state: st.session_state.running = False
-if "flag" not in st.session_state: st.session_state.flag = False
-if "animating" not in st.session_state: st.session_state.animating = False
+if "running" not in st.session_state: st.session_state.running=False
+if "flag" not in st.session_state: st.session_state.flag=False
+if "lost" not in st.session_state: st.session_state.lost=False
+if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 CSS (完全回归白底黑字版 + 动画) =================
+# ================= 🎨 CSS 样式 (隐藏 +/- 版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 全局重置 */
+    /* 1. 全局设置 */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
-    
-    h1, h2, h3, p, label, span, div, button {
+    h1, h2, h3, p, span, div, label, button {
         color: #2c3e50 !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
     h1 { text-align: center; color: #000 !important; }
 
-    /* 2. 输入框修复 (白底黑字 + 隐藏 +/-) */
+    /* ============================================================
+       🔧 修复: 输入框样式 (白底黑字 + 隐藏按钮)
+       ============================================================ */
+    
+    /* 输入框外壳：白底黑框 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
@@ -91,32 +93,56 @@ st.markdown("""
         color: #000000 !important;
         border-radius: 6px !important;
     }
-    
-    /* 文字强制纯黑 */
+
+    /* 输入框内的文字：纯黑 */
     input[type="number"], div[data-baseweb="select"] span {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
         caret-color: #000000 !important;
         font-weight: bold !important;
         font-size: 18px !important;
-        text-align: center;
+        text-align: center; /* 让数字居中更好看 */
     }
 
-    /* 隐藏 +/- 按钮 */
-    div[data-testid="stNumberInput"] button { display: none !important; }
+    /* 🚨🚨🚨 核心修改：隐藏 +/- 步进按钮 🚨🚨🚨 */
+    div[data-testid="stNumberInput"] button {
+        display: none !important;
+    }
 
     /* 下拉菜单 */
-    ul[data-baseweb="menu"] { background-color: #ffffff !important; border: 2px solid #2c3e50 !important; }
-    li[data-baseweb="option"] { color: #000000 !important; background-color: #ffffff !important; }
-    li[data-baseweb="option"]:hover { background-color: #e0e0e0 !important; }
+    ul[data-baseweb="menu"] {
+        background-color: #ffffff !important;
+        border: 2px solid #2c3e50 !important;
+    }
+    li[data-baseweb="option"] {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+    }
+    li[data-baseweb="option"]:hover {
+        background-color: #e0e0e0 !important;
+    }
 
-    /* 3. 棋盘样式 */
-    div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; justify-content: center !important; }
-    div[data-testid="column"] { width: 44px !important; flex: 0 0 44px !important; min-width: 44px !important; padding: 2px !important; }
+    /* ============================================================
+       棋盘样式
+       ============================================================ */
+    
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0.5rem !important;
+        justify-content: center !important;
+    }
+
+    div[data-testid="column"] {
+        width: 44px !important;
+        flex: 0 0 44px !important;
+        min-width: 44px !important;
+        padding: 2px !important;
+    }
 
     .tile-box {
-        width: 40px !important; height: 40px !important;
-        border-radius: 4px !important; border: 2px solid #2c3e50 !important;
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 4px !important;
+        border: 2px solid #2c3e50 !important;
         display: flex; align-items: center; justify-content: center;
         box-sizing: border-box !important;
     }
@@ -125,82 +151,116 @@ st.markdown("""
     button[kind="secondary"] {
         @extend .tile-box;
         width: 40px !important; height: 40px !important;
-        background-color: #ffffff !important; color: transparent !important;
+        background-color: #ffffff !important;
+        color: transparent !important;
         box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
         border: 2px solid #2c3e50 !important;
     }
-    button[kind="secondary"]:hover { transform: translate(-1px, -1px); background-color: #f9f9f9 !important; }
+    button[kind="secondary"]:hover {
+        transform: translate(-1px, -1px);
+        background-color: #f9f9f9 !important;
+    }
 
     /* 已揭开 */
     .cell-revealed {
         width: 40px !important; height: 40px !important;
-        border: 2px solid #2c3e50 !important; border-radius: 4px !important;
+        border: 2px solid #2c3e50 !important;
+        border-radius: 4px !important;
         box-sizing: border-box !important;
-        background-color: #dfe6e9 !important; color: #2c3e50 !important;
-        font-size: 20px; font-weight: bold; cursor: default;
+        
+        background-color: #dfe6e9 !important; 
+        color: #2c3e50 !important;
+        font-size: 20px; font-weight: bold;
+        cursor: default;
         display: flex; align-items: center; justify-content: center;
         box-shadow: none !important;
     }
 
-    .cell-bomb { color: #d63031 !important; font-size: 28px !important; line-height: 1; }
-    
-    /* 按钮 */
-    button[kind="primary"] { background-color: #2c3e50 !important; border: 2px solid #000 !important; width: 100%; }
+    /* 炸弹 */
+    .cell-bomb {
+        color: #d63031 !important;
+        font-size: 28px !important;
+        line-height: 1;
+    }
+
+    /* Start 按钮 */
+    button[kind="primary"] {
+        background-color: #2c3e50 !important;
+        border: 2px solid #000 !important;
+        width: 100%;
+    }
     button[kind="primary"] p { color: #fff !important; font-size: 20px !important; }
     button[kind="primary"]:hover { background-color: #000 !important; }
-    
-    /* Home 按钮特殊处理 (用 secondaryform 样式区分) */
-    button[kind="secondaryform"] { background-color: #fff !important; border: 2px solid #2c3e50 !important; }
-    button[kind="secondaryform"] p { color: #2c3e50 !important; }
 
     .c1 { color: #0984e3 !important; } .c2 { color: #00b894 !important; }
     .c3 { color: #d63031 !important; } .c4 { color: #6c5ce7 !important; }
-    
-    /* 4. 动画特效 */
-    @keyframes crumpleOut {
-        0% { transform: scale(1) rotate(0deg); opacity: 1; }
-        30% { transform: scale(0.8) rotate(-5deg) skew(5deg); }
-        100% { transform: scale(0) rotate(720deg); opacity: 0; }
-    }
-    @keyframes paperIn {
-        0% { transform: translateY(30px); opacity: 0; }
-        100% { transform: translateY(0); opacity: 1; }
-    }
-    .anim-crumple { animation: crumpleOut 0.6s ease-in forwards; transform-origin: center; }
-    .anim-enter { animation: paperIn 0.5s ease-out forwards; }
-    
-    .board-container { display: inline-block; }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ================= 渲染函数 (用于动画复用) =================
+# ================= UI 构建 =================
 
-def render_board_grid(board, vis, flg, rows, cols, css_class=""):
-    """渲染棋盘的函数，支持传入动画 CSS Class"""
-    st.markdown(f"<div class='board-container {css_class}' style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
+st.title("Minesweeper")
+
+if not st.session_state.running:
+    st.markdown("### ✏️ Setup")
     
-    for r in range(rows):
-        cols_ui = st.columns(cols)
-        for c in range(cols):
-            with cols_ui[c]:
+    c1, c2, c3 = st.columns([1, 1, 1.5])
+    
+    with c1: R = st.number_input("Rows", 5, 20, 10)
+    with c2: C = st.number_input("Cols", 5, 20, 10)
+    with c3: 
+        diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
+        rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
+    
+    M = max(1, int(R*C*rate))
+    st.write(f"**Mines:** {M}")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    if st.button("START GAME", type="primary", use_container_width=True):
+        start(R, C, M)
+        st.rerun()
+
+else:
+    c1, c2, c3 = st.columns([1.5, 2, 1.5])
+    with c2:
+        left = st.session_state.mines - len(st.session_state.flags)
+        st.markdown(f"<div style='text-align:center; font-size:24px; font-weight:bold; padding-top:5px;'>{left} 💣</div>", unsafe_allow_html=True)
+    with c1:
+        mode = "🚩 Flag" if st.session_state.flag else "⛏️ Dig"
+        if st.button(mode, type="primary", use_container_width=True):
+            st.session_state.flag = not st.session_state.flag
+            st.rerun()
+    with c3:
+        if st.button("Restart", type="primary", use_container_width=True):
+            st.session_state.running = False
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
+    if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
+
+    # === 渲染网格 ===
+    st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
+    
+    board = st.session_state.board
+    vis = st.session_state.revealed
+    flg = st.session_state.flags
+    
+    for r in range(st.session_state.rows):
+        cols = st.columns(st.session_state.cols)
+        for c in range(st.session_state.cols):
+            with cols[c]:
                 key = f"{r}_{c}"
                 is_rev = (r,c) in vis
                 is_flg = (r,c) in flg
                 end = st.session_state.lost or st.session_state.won
                 
-                # 如果正在播放揉纸动画，直接显示静态快照，避免按钮重新渲染闪烁
-                if "crumple" in css_class:
-                    if is_rev:
-                         st.markdown("<div class='cell-revealed' style='opacity:0.8'></div>", unsafe_allow_html=True)
-                    else:
-                         st.markdown("<div class='cell-revealed' style='background:#fff'></div>", unsafe_allow_html=True)
-                    continue
-
-                # 正常游戏逻辑
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
+                        # 红色蜡笔 X
                         st.markdown("<div class='cell-revealed cell-bomb'>X</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
@@ -221,84 +281,5 @@ def render_board_grid(board, vis, flg, rows, cols, css_class=""):
                                 st.rerun()
                     else:
                         st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
+
     st.markdown("</div>", unsafe_allow_html=True)
-
-# ================= 主流程 =================
-
-st.title("Minesweeper")
-
-# 1. 动画阶段：正在揉纸
-if st.session_state.animating:
-    # 渲染旧棋盘，加上动画 class
-    render_board_grid(st.session_state.board, st.session_state.revealed, st.session_state.flags, 
-                      st.session_state.rows, st.session_state.cols, "anim-crumple")
-    time.sleep(0.6) # 等待动画
-    
-    # 动画结束，真正重置数据
-    cfg = st.session_state.config
-    start_game(cfg["R"], cfg["C"], cfg["M"])
-    st.session_state.animating = False
-    st.rerun()
-
-# 2. 设置阶段
-elif not st.session_state.running:
-    st.markdown("### ✏️ Setup")
-    c1, sp1, c2, sp2, c3 = st.columns([1, 0.5, 1, 0.5, 2])
-    
-    with c1: R = st.number_input("Rows", 5, 20, 10)
-    with sp1: st.empty()
-    with c2: C = st.number_input("Cols", 5, 20, 10)
-    with sp2: st.empty()
-    with c3: 
-        diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
-        rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
-    
-    M = max(1, int(R*C*rate))
-    st.write(f"**Mines:** {M}")
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    if st.button("START GAME", type="primary", use_container_width=True):
-        start_game(R, C, M)
-        st.rerun()
-
-# 3. 游戏阶段
-else:
-    # 顶部控制栏：Home | 状态 | Restart
-    c_home, c_mid, c_restart = st.columns([1, 2, 1])
-    
-    with c_home:
-        # Home 键：返回设置
-        if st.button("🏠 Home", type="secondary", use_container_width=True):
-            st.session_state.running = False
-            st.rerun()
-            
-    with c_mid:
-        left = st.session_state.mines - len(st.session_state.flags)
-        mode_icon = "🚩" if st.session_state.flag else "⛏️"
-        
-        # 状态显示
-        st.markdown(
-            f"<div style='text-align:center; font-size:22px; padding-top:5px;'>"
-            f"<b>{left}</b> 💣 | Mode: {mode_icon}"
-            f"</div>", unsafe_allow_html=True
-        )
-        
-        # 模式切换 (隐形按钮覆盖在文字下，或者直接放在下面)
-        if st.button("Switch Mode", key="mode_sw", use_container_width=True):
-             st.session_state.flag = not st.session_state.flag
-             st.rerun()
-
-    with c_restart:
-        # Restart 键：触发动画
-        if st.button("🔄 Restart", type="primary", use_container_width=True):
-            st.session_state.animating = True
-            st.rerun()
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
-    if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
-
-    # 渲染棋盘 (带入场动画)
-    render_board_grid(st.session_state.board, st.session_state.revealed, st.session_state.flags, 
-                      st.session_state.rows, st.session_state.cols, "anim-enter")
