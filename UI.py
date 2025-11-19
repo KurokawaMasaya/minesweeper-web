@@ -1,8 +1,8 @@
 import streamlit as st
 import random
 
-# 设置页面
-st.set_page_config(page_title="Minesweeper 98", layout="centered", page_icon="💣")
+# 页面设置：使用宽屏模式让布局更舒展
+st.set_page_config(page_title="Crystal Minesweeper", layout="centered", page_icon="💎")
 
 # ================= 核心逻辑 (保持不变) =================
 def neighbors(r, c, R, C):
@@ -63,197 +63,234 @@ if "flag" not in st.session_state: st.session_state.flag=False
 if "lost" not in st.session_state: st.session_state.lost=False
 if "won" not in st.session_state: st.session_state.won=False
 
-# ================= 🎨 修复版 CSS (精准定位) =================
+# ================= 💎 终极毛玻璃 UI (CSS) =================
 
-CELL_SIZE = 30  # 格子大小
-
-st.markdown(f"""
+st.markdown("""
 <style>
-    /* 全局背景：Windows 经典青色 */
-    .stApp {{
-        background-color: #008080;
-        font-family: 'Tahoma', sans-serif;
-    }}
+    /* 1. 背景：高级深海渐变，衬托白字非常清晰 */
+    .stApp {
+        background: radial-gradient(circle at center, #2b5876 0%, #4e4376 100%);
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-    /* ================= 1. 修复控制区按钮 (Start/Flag/Restart) ================= */
-    /* 这些按钮必须是宽的，不能被压缩 */
-    .control-area {{
-        margin-bottom: 15px;
+    /* 2. 标题 */
+    h1 {
+        color: rgba(255, 255, 255, 0.95) !important;
+        text-shadow: 0 0 20px rgba(255,255,255,0.4);
+        font-weight: 300 !important;
+        letter-spacing: 2px;
+        margin-bottom: 20px !important;
+    }
+
+    /* 3. 游戏容器：磨砂玻璃卡片 */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 30px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         text-align: center;
-    }}
-    
-    /* 针对控制区的按钮样式 */
-    .control-area button {{
-        width: auto !important;     /* 关键修复：宽度自适应文字 */
-        height: auto !important;    /* 高度自适应 */
-        min-width: 100px !important;
-        padding: 8px 15px !important;
-        background: #c0c0c0 !important;
-        border: 2px solid #fff !important;
-        border-right-color: #404040 !important;
-        border-bottom-color: #404040 !important;
-        color: black !important;
+        margin-bottom: 20px;
+    }
+
+    /* 4. 按钮样式 (未揭开的格子)：半透明果冻 */
+    div.stButton > button {
+        width: 45px !important;
+        height: 45px !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        background: rgba(255, 255, 255, 0.15) !important; /* 半透明白 */
+        border-radius: 8px !important;
+        color: white !important;
+        transition: all 0.2s ease !important;
         font-weight: bold !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-    }}
-    .control-area button:active {{
-        border: 1px solid #404040 !important;
-        transform: translateY(1px);
-    }}
+    }
 
-    /* ================= 2. 雷区格子 (XP-GRID) ================= */
-    /* 只有放在这个 div 下面的按钮才会被强制变成小方块 */
-    
-    .xp-grid {{
-        display: inline-block;
-        background: #c0c0c0;
-        border: 3px solid #808080;
-        border-left-color: #fff;
-        border-top-color: #fff;
-        padding: 5px;
-    }}
+    div.stButton > button:hover {
+        background: rgba(255, 255, 255, 0.4) !important;
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        border-color: white !important;
+    }
 
-    /* 强制消除列间距 */
-    .xp-grid div[data-testid="column"] {{
-        width: {CELL_SIZE}px !important;
-        flex: 0 0 {CELL_SIZE}px !important;
-        padding: 0 !important; margin: 0 !important;
-    }}
-    
-    .xp-grid div[data-testid="stHorizontalBlock"] {{
-        gap: 0 !important;
-    }}
+    div.stButton > button:active {
+        transform: scale(0.95);
+    }
 
-    /* 只有雷区里的按钮才强制 30x30 */
-    .xp-grid div.stButton > button {{
-        width: {CELL_SIZE}px !important;
-        height: {CELL_SIZE}px !important;
-        border-radius: 0 !important;
-        background: #c0c0c0 !important;
-        border-top: 2px solid #fff !important;
-        border-left: 2px solid #fff !important;
-        border-right: 2px solid #808080 !important;
-        border-bottom: 2px solid #808080 !important;
-        margin: 0 !important; padding: 0 !important;
-        line-height: 1 !important;
-    }}
-
-    /* 已揭开的格子 */
-    .revealed-cell {{
-        width: {CELL_SIZE}px;
-        height: {CELL_SIZE}px;
-        line-height: {CELL_SIZE}px;
-        text-align: center;
-        border-left: 1px solid #808080;
-        border-top: 1px solid #808080;
-        font-family: 'Courier New', monospace;
+    /* 5. 已揭开的格子：乳白色背景，高对比度数字 */
+    .cell-revealed {
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.9); /* 不透明的乳白色 */
+        border-radius: 8px;
+        font-family: 'Verdana', sans-serif;
         font-weight: 900;
-        font-size: 18px;
-        cursor: default;
-    }}
-
-    /* 颜色 */
-    .c1 {{ color: blue; }} .c2 {{ color: green; }} .c3 {{ color: red; }}
-    .c4 {{ color: darkblue; }} .c5 {{ color: darkred; }}
-    .bomb {{ background: red; color: black; }}
+        font-size: 22px;
+        box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+    }
     
+    /* 数字颜色 - 这种配色在白色背景上最清晰 */
+    .n1 { color: #2563eb; } /* 亮蓝 */
+    .n2 { color: #059669; } /* 翠绿 */
+    .n3 { color: #dc2626; } /* 鲜红 */
+    .n4 { color: #7c3aed; } /* 紫色 */
+    .n5 { color: #d97706; } /* 橙色 */
+    
+    .bomb { 
+        background: #ef4444 !important; 
+        color: white !important;
+        font-size: 24px;
+        animation: shake 0.5s;
+    }
+    
+    /* 旗帜标记 */
+    .flagged-mark {
+        color: #ff6b6b;
+        font-size: 22px;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+
+    /* Streamlit 布局微调 */
+    div[data-testid="column"] {
+        width: 45px !important;
+        flex: unset !important;
+        padding: 3px !important; /* 保留一点间隙，好看 */
+    }
+    div[data-testid="stHorizontalBlock"] {
+        justify-content: center;
+    }
+    
+    /* 模式切换按钮的高亮 */
+    .mode-active {
+        border: 2px solid #ffdd00 !important;
+        background: rgba(255, 221, 0, 0.2) !important;
+        color: #ffdd00 !important;
+    }
+    
+    @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -2px); } 100% { transform: translate(0, 0); } }
+
 </style>
 """, unsafe_allow_html=True)
 
-# ================= 界面构建 =================
+# ================= UI 构建 =================
 
-st.title("Minesweeper 98")
+st.title("Crystal Minesweeper")
 
-# --- 控制区域 (CSS class: control-area) ---
-# 使用 st.container 配合 HTML div 包裹，确保样式只作用于这里
-st.markdown('<div class="control-area">', unsafe_allow_html=True)
-
+# --- 游戏未开始：漂亮的启动卡片 ---
 if not st.session_state.running:
-    # 未开始：显示开始菜单
-    c1, c2, c3 = st.columns([1, 2, 1])
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("### 🎮 New Game Setup")
+    
+    c1, c2, c3 = st.columns([1,1,1])
     with c2:
-        # 这里的按钮由于在 control-area 下，会自动变宽
-        st.markdown("### Game Setup")
-        diff = st.selectbox("Difficulty", ["Beginner (9x9)", "Intermediate (16x16)", "Expert (16x30)"])
+        # 将设置放在中间
+        diff = st.select_slider("Difficulty Level", options=["Easy", "Medium", "Hard"])
         
-        if st.button("Start Game"):
-            if "Beginner" in diff: R,C,M = 9,9,10
-            elif "Intermediate" in diff: R,C,M = 16,16,40
-            else: R,C,M = 16,30,99
+        # 根据难度预设参数
+        if diff == "Easy": R, C, M = 8, 8, 8
+        elif diff == "Medium": R, C, M = 10, 10, 15
+        else: R, C, M = 12, 12, 25
+        
+        st.write("")
+        if st.button("✨ Start Game", type="primary", use_container_width=True):
             start(R,C,M)
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
+# --- 游戏进行中 ---
 else:
-    # 进行中：显示顶部状态栏
-    col_info, col_face, col_toggle = st.columns([2, 1, 2])
+    # 1. 顶部控制栏 (透明悬浮)
+    c_left, c_mid, c_right = st.columns([1.5, 2, 1.5])
     
-    with col_info:
-        left = st.session_state.mines - len(st.session_state.flags)
-        st.markdown(f"<div style='background:black;color:red;font-family:monospace;font-size:24px;padding:5px;border:2px inset #808080;display:inline-block;'>{max(0, left):03}</div>", unsafe_allow_html=True)
+    with c_mid:
+        # 状态显示
+        mines_left = st.session_state.mines - len(st.session_state.flags)
+        state_text = "Playing..."
+        if st.session_state.lost: state_text = "💀 Failed"
+        if st.session_state.won: state_text = "🏆 Victory!"
         
-    with col_face:
-        # 重开按钮 (表情)
-        face = "😎" if st.session_state.won else ("😵" if st.session_state.lost else "🙂")
-        if st.button(face, key="restart_btn"):
-            st.session_state.running = False
-            st.rerun()
-            
-    with col_toggle:
-        # 模式切换按钮 (宽按钮)
-        mode_text = "🚩 Flag Mode" if st.session_state.flag else "⛏️ Dig Mode"
-        # 这里的按钮也会正常显示宽度
-        if st.button(mode_text, key="mode_btn"):
+        st.markdown(f"""
+        <div style="text-align:center; background:rgba(0,0,0,0.3); border-radius:50px; padding:8px 20px; color:white; font-weight:bold; border:1px solid rgba(255,255,255,0.2);">
+            💣 {mines_left} &nbsp; | &nbsp; {state_text}
+        </div>
+        """, unsafe_allow_html=True)
+
+    with c_left:
+        # 模式切换
+        mode_icon = "🚩" if st.session_state.flag else "⛏️"
+        mode_txt = "Flag Mode" if st.session_state.flag else "Dig Mode"
+        btn_type = "primary" if st.session_state.flag else "secondary"
+        
+        if st.button(f"{mode_icon} {mode_txt}", use_container_width=True, help="Click to toggle mode"):
             st.session_state.flag = not st.session_state.flag
             st.rerun()
 
-st.markdown('</div>', unsafe_allow_html=True) # 结束 control-area
+    with c_right:
+        if st.button("🔄 Restart", use_container_width=True):
+            st.session_state.running = False
+            st.rerun()
 
-
-# --- 游戏雷区 (CSS class: xp-grid) ---
-# 只有这里面的按钮会被压缩成小正方形
-if st.session_state.running:
-    st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True) # 居中容器
-    st.markdown('<div class="xp-grid">', unsafe_allow_html=True) # 雷区专用样式容器
+    # 2. 游戏主区域 (毛玻璃卡片)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div class='glass-card' style='display:inline-block; padding:20px;'>", unsafe_allow_html=True)
     
+    # 胜利/失败 弹窗效果
+    if st.session_state.won:
+        st.balloons()
+        st.success("You cleared all mines! Amazing!")
+    elif st.session_state.lost:
+        st.error("BOOM! Game Over.")
+
     board = st.session_state.board
     vis = st.session_state.revealed
     flg = st.session_state.flags
     
+    # 渲染网格
     for r in range(st.session_state.rows):
         cols = st.columns(st.session_state.cols)
         for c in range(st.session_state.cols):
             with cols[c]:
                 key = f"{r}_{c}"
                 is_rev = (r,c) in vis
-                is_flg = (r,c) in flg
+                is_flag = (r,c) in flg
+                game_over = st.session_state.lost or st.session_state.won
                 
-                # 逻辑判定
-                if is_rev or (st.session_state.lost and board[r][c] == -1) or st.session_state.won:
+                # A. 已揭开 或 游戏结束看答案
+                if is_rev or (game_over and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        bg = "bomb" if is_rev else "" # 踩到的雷变红
-                        st.markdown(f"<div class='revealed-cell {bg}'>💣</div>", unsafe_allow_html=True)
+                        # 雷：红色背景
+                        st.markdown("<div class='cell-revealed bomb'>💣</div>", unsafe_allow_html=True)
                     elif val == 0:
-                        st.markdown("<div class='revealed-cell'></div>", unsafe_allow_html=True)
+                        # 空：乳白色背景
+                        st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div class='revealed-cell c{val}'>{val}</div>", unsafe_allow_html=True)
+                        # 数字：乳白色背景 + 彩色数字
+                        st.markdown(f"<div class='cell-revealed n{val}'>{val}</div>", unsafe_allow_html=True)
+                
+                # B. 未揭开 (按钮)
                 else:
-                    # 这里的 button 会被 .xp-grid div.stButton > button 规则强制变为 30px 宽
-                    label = "🚩" if is_flg else ""
-                    # 游戏结束锁死按钮
-                    if st.session_state.lost or st.session_state.won:
-                         st.markdown(f"<div class='stButton'><button disabled style='color:red'>{label}</button></div>", unsafe_allow_html=True)
+                    # 如果已经结束，显示不可点击的半透明块
+                    if game_over:
+                         flag_disp = "🚩" if is_flag else ""
+                         st.markdown(f"<div class='cell-revealed' style='background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5);'>{flag_disp}</div>", unsafe_allow_html=True)
                     else:
-                        if st.button(label, key=key):
+                        # 正常按钮
+                        # 利用 label 显示旗帜
+                        btn_label = "🚩" if is_flag else ""
+                        
+                        if st.button(btn_label, key=key):
                             if st.session_state.flag:
-                                if is_flg: flg.remove((r,c))
+                                if is_flag: flg.remove((r,c))
                                 else: flg.add((r,c))
                                 st.rerun()
-                            elif not is_flg:
+                            elif not is_flag:
                                 if not reveal(board, vis, flg, r, c):
                                     st.session_state.lost = True
                                 st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True) # 结束 xp-grid
-    st.markdown('</div>', unsafe_allow_html=True) # 结束居中
+    st.markdown("</div>", unsafe_allow_html=True) # End glass-card
