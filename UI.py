@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Minesweeper Doodle Final", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="Crayon Paper Minesweeper", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 (完全不动) =================
+# ================= 核心逻辑 =================
 def neighbors(r, c, R, C):
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
@@ -66,58 +66,41 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS (涂鸦风格 + 深色模式修复 + 防抖动) =================
+# ================= 🎨 永久白纸涂鸦风 CSS =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 颜色变量定义 (涂鸦风格 + 优化的深色模式) */
+    /* 1. 强制锁定【浅色/白纸模式】变量 */
     :root {
-        /* ☀️ 浅色模式 (保持原汁原味涂鸦风) */
-        --bg-color: #fdfcf0; /* 米色纸张 */
-        --text-color: #2c3e50; /* 深蓝灰 (蜡笔黑) */
-        --box-bg: #ffffff; /* 未揭开的白色方块 */
-        --box-border: #2c3e50; /* 粗边框 */
-        --revealed-bg: #dfe6e9; /* 已揭开的浅灰色 */
-        --accent-bg: #2c3e50; /* 主要按钮背景 */
-        --accent-text: #ffffff; /* 主要按钮文字 */
-        --bomb-color: #d63031; /* 炸弹亮红 */
-        --hover-bg: #f0f0f0; /* 按钮悬停 */
+        --bg-color: #fdfcf0;         /* 米色纸张 */
+        --text-color: #2c3e50;       /* 铅笔深蓝灰 */
+        --box-bg: #ffffff;           /* 涂改液白 */
+        --box-border: #2c3e50;       /* 笔触边框 */
+        --revealed-bg: #dfe6e9;      /* 擦痕灰 */
+        --accent-bg: #2c3e50;        /* 按钮深色 */
+        --accent-text: #ffffff;      /* 按钮白字 */
+        --bomb-color: #d63031;       /* 蜡笔红 */
+        --hover-bg: #f0f0f0;
     }
 
-    @media (prefers-color-scheme: dark) {
-        :root {
-            /* 🌙 深色模式 (涂鸦风格，但更清晰) */
-            --bg-color: #1a1a1a; /* 接近纯黑的深背景 */
-            --text-color: #fdfcf0; /* 浅米色文字 (对比原黑板色更清晰) */
-            --box-bg: #2d3436; /* 未揭开的深色方块 */
-            --box-border: #fdfcf0; /* 浅米色边框 (涂鸦感) */
-            --revealed-bg: #000000; /* 已揭开的纯黑色 (黑板感) */
-            --accent-bg: #fdfcf0; /* 主要按钮背景 (浅色) */
-            --accent-text: #2c3e50; /* 主要按钮文字 (深色) */
-            --bomb-color: #ff7675; /* 炸弹亮粉 */
-            --hover-bg: #3d3d3d; /* 按钮悬停 */
-        }
-    }
-
-    /* 2. 全局应用变量 */
+    /* 2. 暴力覆盖全局背景 (无论系统是否 Dark Mode) */
     .stApp {
         background-color: var(--bg-color) !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
+        color: var(--text-color) !important;
     }
     
-    h1, h2, h3, p, label, span, div {
+    h1, h2, h3, p, label, span, div, button {
         color: var(--text-color) !important;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
-        font-weight: normal; /* 涂鸦体默认就是粗的，不用额外加粗 */
     }
     h1 { text-align: center; }
 
     /* ============================================
-       3. 输入框 & 菜单 (自适应涂鸦风格)
+       输入框 & 菜单 (强制白底黑字)
        ============================================ */
-    
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
@@ -128,56 +111,48 @@ st.markdown("""
         box-shadow: none !important;
     }
 
-    input[type="number"], 
-    div[data-baseweb="select"] span,
-    div[data-testid="stNumberInput"] input {
+    input[type="number"], div[data-baseweb="select"] span, div[data-testid="stNumberInput"] input {
         color: var(--text-color) !important;
         -webkit-text-fill-color: var(--text-color) !important;
         caret-color: var(--text-color) !important;
-        font-weight: bold !important; /* 让数字更显眼 */
+        font-weight: bold !important;
         font-size: 18px !important;
         text-align: center;
     }
-    
+
     div[data-baseweb="select"] svg { fill: var(--text-color) !important; }
     div[data-testid="stNumberInput"] button { display: none !important; }
 
+    /* 下拉菜单 */
     ul[data-baseweb="menu"] {
         background-color: var(--box-bg) !important;
         border: 2px solid var(--box-border) !important;
     }
     li[data-baseweb="option"] {
-        color: var(--text-color) !important;
         background-color: var(--box-bg) !important;
-        font-weight: bold !important;
+        color: var(--text-color) !important;
     }
     li[data-baseweb="option"]:hover, li[data-baseweb="option"][aria-selected="true"] {
         background-color: var(--hover-bg) !important;
         color: var(--text-color) !important;
     }
-    li[data-baseweb="option"] * { color: var(--text-color) !important; }
 
-    /* ============================================================
-       🚨 4. 棋盘防抖核心 (Height Lock) 🚨
-       ============================================================ */
+    /* ============================================
+       🚨 布局修复：只锁棋盘，不锁顶部菜单 🚨
+       ============================================ */
 
+    /* 1. 全局居中 */
     div[data-testid="stHorizontalBlock"] {
         gap: 0.4rem !important; 
         justify-content: center !important;
     }
 
-    div[data-testid="column"] {
-        width: 40px !important;
-        min-width: 40px !important;
-        max-width: 40px !important;
-        flex: 0 0 40px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    /* ⚡️ 锁死按钮容器高度 ⚡️ */
+    /* 2. 核心修正：不再强制所有 column 为 44px！ */
+    /* 我们只限制【内部包含 stButton 的 column】或者让它们自然排列 */
+    
+    /* 3. 强制锁死【按钮容器】的尺寸 (这才是防止缩放的关键) */
     div.stButton {
-        width: 40px !important;
+        width: 100% !important; /* 填满列宽 */
         height: 40px !important;
         min-height: 40px !important;
         margin: 0 !important;
@@ -187,12 +162,14 @@ st.markdown("""
 
     /* 通用方块样式 */
     .tile-std {
-        width: 40px !important; height: 40px !important;
+        width: 40px !important; 
+        height: 40px !important;
         border: 2px solid var(--box-border) !important;
         border-radius: 4px !important;
         box-sizing: border-box !important;
         display: flex; align-items: center; justify-content: center;
         line-height: 1 !important;
+        margin: 0 auto !important; /* 保证在列里居中 */
     }
 
     /* A. 未揭开 (按钮) */
@@ -217,26 +194,26 @@ st.markdown("""
         @extend .tile-std;
         background-color: var(--revealed-bg) !important;
         color: var(--text-color) !important;
-        font-size: 20px; font-weight: bold; /* 涂鸦风格的粗壮数字 */
+        font-size: 20px; font-weight: bold;
         cursor: default;
         box-shadow: none !important;
-        margin: 0 !important;
     }
 
-    .cell-bomb { color: var(--bomb-color) !important; font-size: 26px !important; } /* 炸弹也粗壮点 */
+    .cell-bomb { color: var(--bomb-color) !important; font-size: 26px !important; }
 
-    /* 功能按钮 (Start/Restart/Home) */
+    /* 顶部功能按钮 (Primary) - 允许宽度自适应，避免变成竖条 */
     button[kind="primary"] {
         background-color: var(--accent-bg) !important;
         border: 2px solid var(--box-border) !important;
-        width: 100%;
-        box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important; /* 涂鸦按钮要有阴影 */
+        width: 100% !important;
+        height: auto !important;
+        min-height: 45px !important;
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
     }
-    button[kind="primary"] p { color: var(--accent-text) !important; font-size: 18px !important; font-weight: bold !important; }
+    button[kind="primary"] p { color: var(--accent-text) !important; font-size: 18px !important; }
     button[kind="primary"]:hover { opacity: 0.9; }
-    button[kind="primary"]:active { transform: translate(1px, 1px); box-shadow: none !important; }
-
-    /* 数字颜色 (涂鸦风格的鲜艳色) */
+    
+    /* 数字颜色 */
     .c1 { color: #3498db !important; } .c2 { color: #2ecc71 !important; }
     .c3 { color: #e74c3c !important; } .c4 { color: #9b59b6 !important; }
 
@@ -250,7 +227,9 @@ st.title("Minesweeper")
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
     
+    # 布局：输入框 (加大了 spacer 比例，让输入框别太宽)
     c1, sp1, c2, sp2, c3 = st.columns([1, 0.5, 1, 0.5, 2])
+    
     with c1: R = st.number_input("Rows", 5, 20, 10)
     with sp1: st.empty()
     with c2: C = st.number_input("Cols", 5, 20, 10)
@@ -268,7 +247,9 @@ if not st.session_state.running:
         st.rerun()
 
 else:
-    c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
+    # 顶部栏：Home | Mode | Status | Restart
+    # 使用宽松的比例，确保按钮不被挤扁
+    c1, c2, c3, c4 = st.columns([1.5, 1.5, 2, 1.5])
     
     with c1:
         if st.button("🏠 Home", type="primary", use_container_width=True):
@@ -283,15 +264,15 @@ else:
         left = st.session_state.mines - len(st.session_state.flags)
         st.markdown(f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px;'>{left} 💣 Left</div>", unsafe_allow_html=True)
     with c4:
-        if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
+        if st.button("🔄 Restart", type="primary", use_container_width=True):
             cfg = st.session_state.game_config
             start(cfg['R'], cfg['C'], cfg['M'])
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.session_state.lost: st.markdown("<h2 style='color:var(--bomb-color);text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
-    if st.session_state.won: st.markdown("<h2 style='color:#2ecc71;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
+    if st.session_state.lost: st.markdown(f"<h2 style='text-align:center; color:var(--bomb-color);'>Oops! Boom!</h2>", unsafe_allow_html=True)
+    if st.session_state.won: st.markdown("<h2 style='text-align:center; color:#2ecc71;'>You Win!</h2>", unsafe_allow_html=True)
 
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
     
@@ -300,7 +281,10 @@ else:
     flg = st.session_state.flags
     
     for r in range(st.session_state.rows):
-        cols = st.columns(st.session_state.cols)
+        # 重点：只在棋盘区域强制列宽紧凑！
+        # 通过 CSS 锁定内部元素宽度，而不是锁定 column 宽度
+        cols = st.columns([1] * st.session_state.cols)
+        
         for c in range(st.session_state.cols):
             with cols[c]:
                 key = f"{r}_{c}"
