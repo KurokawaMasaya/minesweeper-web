@@ -2,9 +2,9 @@ import streamlit as st
 import random
 
 # 页面配置
-st.set_page_config(page_title="Minesweeper Final", layout="centered", page_icon="🖍️")
+st.set_page_config(page_title="High Contrast Minesweeper", layout="centered", page_icon="🖍️")
 
-# ================= 核心逻辑 =================
+# ================= 核心逻辑 (不变) =================
 def neighbors(r, c, R, C):
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
@@ -66,81 +66,95 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS 样式 (精准修复版) =================
+# ================= 🎨 CSS (黑白反转交互版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. APP 背景与字体 (只设字体，不强行改所有颜色) */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
     
-    /* 2. 精准定位游戏内的文本颜色为深色，不碰系统菜单 */
-    /* 标题 */
-    h1 { color: #000 !important; text-align: center; }
-    /* Markdown 文本 (如 Mines Left) */
-    .stMarkdown p { color: #2c3e50 !important; font-size: 20px !important; }
-    /* 输入框的 Label (Rows, Cols) */
-    label[data-testid="stWidgetLabel"] p { color: #2c3e50 !important; font-weight: bold !important; }
-    
-    /* ============================================================
-       输入框 (白底黑字 + 隐藏按钮)
-       ============================================================ */
+    /* 通用文字颜色 */
+    h1, h2, h3, p, label, span, div, button {
+        color: #2c3e50 !important;
+        font-family: 'Patrick Hand', cursive, sans-serif !important;
+    }
+    h1 { text-align: center; color: #000 !important; }
 
-    /* 输入框容器 */
+    /* ============================================================
+       🚨 核心修复：黑白反转交互 (Dark/Light Invert) 🚨
+       ============================================================ */
+    
+    /* 1. 输入框的默认状态：黑底白字 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
-        background-color: #ffffff !important;
-        border: 2px solid #2c3e50 !important;
-        color: #000000 !important;
+        background-color: #2c3e50 !important; /* 深色底 */
+        border: 2px solid #000000 !important;
+        color: #ffffff !important;            /* 白字 */
         border-radius: 6px !important;
     }
 
-    /* 输入框文字 */
-    input[type="number"], div[data-baseweb="select"] span {
-        color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important;
-        caret-color: #000000 !important;
+    /* 输入框内的文字：强制白色 */
+    input[type="number"], 
+    div[data-baseweb="select"] span {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        caret-color: #ffffff !important;
         font-weight: bold !important;
-        font-size: 18px !important;
         text-align: center;
     }
 
-    /* 隐藏 +/- 按钮 */
+    /* 下拉箭头：白色 */
+    div[data-baseweb="select"] svg {
+        fill: #ffffff !important;
+    }
+    
+    /* 隐藏数字输入框的 +/- 按钮 (保持界面干净) */
     div[data-testid="stNumberInput"] button { display: none !important; }
 
-    /* 下拉菜单弹出层 */
+
+    /* 2. 下拉菜单弹出层 (Dropdown Menu) */
+    
+    /* 菜单容器：黑底 */
     ul[data-baseweb="menu"] {
-        background-color: #ffffff !important;
-        border: 2px solid #2c3e50 !important;
+        background-color: #2c3e50 !important;
+        border: 2px solid #000000 !important;
     }
+
+    /* 选项默认状态：黑底白字 */
     li[data-baseweb="option"] {
+        background-color: #2c3e50 !important;
+        color: #ffffff !important;
+    }
+    
+    /* 选项内的文字容器 */
+    li[data-baseweb="option"] div {
+        color: #ffffff !important;
+    }
+
+    /* ✨✨✨ 交互状态：悬停/选中 -> 变成 白底黑字 ✨✨✨ */
+    li[data-baseweb="option"]:hover,
+    li[data-baseweb="option"][aria-selected="true"] {
+        background-color: #ffffff !important; /* 变白底 */
+        color: #000000 !important;            /* 变黑字 */
+    }
+    
+    /* 选中时，里面的文字也要变黑 */
+    li[data-baseweb="option"]:hover div,
+    li[data-baseweb="option"][aria-selected="true"] div {
         color: #000000 !important;
-        background-color: #ffffff !important;
     }
-    li[data-baseweb="option"]:hover {
-        background-color: #e0e0e0 !important;
-    }
+
 
     /* ============================================================
-       棋盘样式
+       棋盘样式 (保持完美)
        ============================================================ */
-
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0.5rem !important;
-        justify-content: center !important;
-    }
-
-    div[data-testid="column"] {
-        width: 44px !important;
-        flex: 0 0 44px !important;
-        min-width: 44px !important;
-        padding: 2px !important;
-    }
+    div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; justify-content: center !important; }
+    div[data-testid="column"] { width: 44px !important; flex: 0 0 44px !important; min-width: 44px !important; padding: 2px !important; }
 
     .tile-box {
         width: 40px !important; height: 40px !important;
@@ -153,42 +167,28 @@ st.markdown("""
     button[kind="secondary"] {
         @extend .tile-box;
         width: 40px !important; height: 40px !important;
-        background-color: #ffffff !important;
-        color: transparent !important;
+        background-color: #ffffff !important; color: transparent !important;
         box-shadow: 2px 2px 0px rgba(0,0,0,0.15) !important;
         border: 2px solid #2c3e50 !important;
     }
-    button[kind="secondary"]:hover {
-        transform: translate(-1px, -1px);
-        background-color: #f9f9f9 !important;
-    }
+    button[kind="secondary"]:hover { transform: translate(-1px, -1px); background-color: #f9f9f9 !important; }
 
     /* 已揭开 */
     .cell-revealed {
         width: 40px !important; height: 40px !important;
-        border: 2px solid #2c3e50 !important;
-        border-radius: 4px !important;
+        border: 2px solid #2c3e50 !important; border-radius: 4px !important;
         box-sizing: border-box !important;
-        background-color: #dfe6e9 !important; 
-        color: #2c3e50 !important;
+        background-color: #dfe6e9 !important; color: #2c3e50 !important;
         font-size: 20px; font-weight: bold;
-        cursor: default;
-        display: flex; align-items: center; justify-content: center;
+        cursor: default; display: flex; align-items: center; justify-content: center;
         box-shadow: none !important;
     }
 
-    /* 炸弹 */
-    .cell-bomb {
-        color: #d63031 !important;
-        font-size: 28px !important;
-        line-height: 1;
-    }
+    .cell-bomb { color: #d63031 !important; font-size: 28px !important; line-height: 1; }
 
-    /* 主按钮 (Start / Restart / Home) */
+    /* Start / Home / Restart 按钮 */
     button[kind="primary"] {
-        background-color: #2c3e50 !important;
-        border: 2px solid #000 !important;
-        width: 100%;
+        background-color: #2c3e50 !important; border: 2px solid #000 !important; width: 100%;
     }
     button[kind="primary"] p { color: #fff !important; font-size: 18px !important; }
     button[kind="primary"]:hover { background-color: #000 !important; }
@@ -203,16 +203,17 @@ st.markdown("""
 
 st.title("Minesweeper")
 
-# 1. 游戏设置
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
 
     c1, c2, c3 = st.columns([1, 1, 1.5])
     with c1:
+        # 黑底白字输入框
         R = st.number_input("Rows", 5, 20, 10)
     with c2:
         C = st.number_input("Cols", 5, 20, 10)
     with c3:
+        # 下拉框：默认黑底白字，选中变成白底黑字
         diff = st.selectbox("Diff", ["Easy (10%)", "Med (15%)", "Hard (20%)"])
         rate = 0.10 if "Easy" in diff else (0.15 if "Med" in diff else 0.20)
 
@@ -224,7 +225,6 @@ if not st.session_state.running:
         start(R, C, M)
         st.rerun()
 
-# 2. 游戏进行
 else:
     # Home | Mode | Status | Restart
     c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
@@ -247,7 +247,6 @@ else:
             unsafe_allow_html=True)
             
     with c4:
-        # 重新开始 (复用当前配置)
         if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
             cfg = st.session_state.game_config
             start(cfg['R'], cfg['C'], cfg['M'])
@@ -258,7 +257,7 @@ else:
     if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
     if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
-    # === 渲染网格 ===
+    # 渲染网格
     st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
 
     board = st.session_state.board
