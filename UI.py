@@ -59,7 +59,6 @@ def start(R, C, M):
     st.session_state.running = True
     st.session_state.lost = False
     st.session_state.won = False
-    # 【关键】保存当前配置，用于 Restart
     st.session_state.game_config = {'R': R, 'C': C, 'M': M}
 
 if "running" not in st.session_state: st.session_state.running = False
@@ -67,28 +66,31 @@ if "flag" not in st.session_state: st.session_state.flag = False
 if "lost" not in st.session_state: st.session_state.lost = False
 if "won" not in st.session_state: st.session_state.won = False
 
-# ================= 🎨 CSS 样式 =================
+# ================= 🎨 CSS 样式 (精准修复版) =================
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
-    /* 1. 全局设置 */
+    /* 1. APP 背景与字体 (只设字体，不强行改所有颜色) */
     .stApp {
         background-color: #fdfcf0;
         font-family: 'Patrick Hand', cursive, sans-serif !important;
     }
-    h1, h2, h3, p, span, div, label, button {
-        color: #2c3e50 !important;
-        font-family: 'Patrick Hand', cursive, sans-serif !important;
-    }
-    h1 { text-align: center; color: #000 !important; }
-
+    
+    /* 2. 精准定位游戏内的文本颜色为深色，不碰系统菜单 */
+    /* 标题 */
+    h1 { color: #000 !important; text-align: center; }
+    /* Markdown 文本 (如 Mines Left) */
+    .stMarkdown p { color: #2c3e50 !important; font-size: 20px !important; }
+    /* 输入框的 Label (Rows, Cols) */
+    label[data-testid="stWidgetLabel"] p { color: #2c3e50 !important; font-weight: bold !important; }
+    
     /* ============================================================
-       🔧 修复: 输入框样式 (白底黑字 + 隐藏按钮)
+       输入框 (白底黑字 + 隐藏按钮)
        ============================================================ */
 
-    /* 输入框外壳：白底黑框 */
+    /* 输入框容器 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-testid="stNumberInput"] > div {
@@ -98,7 +100,7 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
-    /* 输入框内的文字：纯黑 */
+    /* 输入框文字 */
     input[type="number"], div[data-baseweb="select"] span {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
@@ -108,12 +110,10 @@ st.markdown("""
         text-align: center;
     }
 
-    /* 隐藏 +/- 步进按钮 */
-    div[data-testid="stNumberInput"] button {
-        display: none !important;
-    }
+    /* 隐藏 +/- 按钮 */
+    div[data-testid="stNumberInput"] button { display: none !important; }
 
-    /* 下拉菜单 */
+    /* 下拉菜单弹出层 */
     ul[data-baseweb="menu"] {
         background-color: #ffffff !important;
         border: 2px solid #2c3e50 !important;
@@ -143,10 +143,8 @@ st.markdown("""
     }
 
     .tile-box {
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 4px !important;
-        border: 2px solid #2c3e50 !important;
+        width: 40px !important; height: 40px !important;
+        border-radius: 4px !important; border: 2px solid #2c3e50 !important;
         display: flex; align-items: center; justify-content: center;
         box-sizing: border-box !important;
     }
@@ -186,7 +184,7 @@ st.markdown("""
         line-height: 1;
     }
 
-    /* 功能按钮 (Start/Home/Restart) */
+    /* 主按钮 (Start / Restart / Home) */
     button[kind="primary"] {
         background-color: #2c3e50 !important;
         border: 2px solid #000 !important;
@@ -205,12 +203,11 @@ st.markdown("""
 
 st.title("Minesweeper")
 
-# 1. 游戏设置界面
+# 1. 游戏设置
 if not st.session_state.running:
     st.markdown("### ✏️ Setup")
 
     c1, c2, c3 = st.columns([1, 1, 1.5])
-
     with c1:
         R = st.number_input("Rows", 5, 20, 10)
     with c2:
@@ -227,13 +224,12 @@ if not st.session_state.running:
         start(R, C, M)
         st.rerun()
 
-# 2. 游戏进行界面
+# 2. 游戏进行
 else:
-    # 顶部控制栏：Home | Mode | Status | Restart
+    # Home | Mode | Status | Restart
     c1, c2, c3, c4 = st.columns([1, 1.2, 1.8, 1])
     
     with c1:
-        # Home 键：回到设置页
         if st.button("🏠 Home", type="primary", use_container_width=True):
             st.session_state.running = False
             st.rerun()
@@ -246,29 +242,24 @@ else:
             
     with c3:
         left = st.session_state.mines - len(st.session_state.flags)
-        # 稍微调整一下文字显示，让它和按钮对齐
         st.markdown(
-            f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px;'>{left} 💣 Left</div>",
+            f"<div style='text-align:center; font-size:22px; font-weight:bold; padding-top:8px; color:#2c3e50;'>{left} 💣 Left</div>",
             unsafe_allow_html=True)
             
     with c4:
-        # Restart 键：使用保存的配置直接重开
-        if st.button("🔄", type="primary", use_container_width=True, help="Restart with same settings"):
-            # 读取之前保存的配置
+        # 重新开始 (复用当前配置)
+        if st.button("🔄", type="primary", use_container_width=True, help="Restart"):
             cfg = st.session_state.game_config
             start(cfg['R'], cfg['C'], cfg['M'])
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>",
-                                          unsafe_allow_html=True)
-    if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>",
-                                         unsafe_allow_html=True)
+    if st.session_state.lost: st.markdown("<h2 style='color:#d63031;text-align:center'>Oops! Boom!</h2>", unsafe_allow_html=True)
+    if st.session_state.won: st.markdown("<h2 style='color:#00b894;text-align:center'>You Win!</h2>", unsafe_allow_html=True)
 
     # === 渲染网格 ===
-    st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>",
-                unsafe_allow_html=True)
+    st.markdown("<div style='display:flex; justify-content:center; flex-direction:column; align-items:center;'>", unsafe_allow_html=True)
 
     board = st.session_state.board
     vis = st.session_state.revealed
@@ -286,30 +277,24 @@ else:
                 if is_rev or (end and board[r][c] == -1):
                     val = board[r][c]
                     if val == -1:
-                        # 红色蜡笔 X
                         st.markdown("<div class='cell-revealed cell-bomb'>X</div>", unsafe_allow_html=True)
                     elif val == 0:
                         st.markdown("<div class='cell-revealed'></div>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<div class='cell-revealed c{val}'>{val}</div>", unsafe_allow_html=True)
-
                 else:
                     label = "P" if is_flg else " "
                     if not end:
                         if st.button(label, key=key, type="secondary"):
                             if st.session_state.flag:
-                                if is_flg:
-                                    flg.remove((r, c))
-                                else:
-                                    flg.add((r, c))
+                                if is_flg: flg.remove((r, c))
+                                else: flg.add((r, c))
                                 st.rerun()
                             elif not is_flg:
                                 if not reveal(board, vis, flg, r, c):
                                     st.session_state.lost = True
                                 st.rerun()
                     else:
-                        st.markdown(
-                            f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>",
-                            unsafe_allow_html=True)
+                        st.markdown(f"<div class='cell-revealed' style='background:#fff !important; color:#ccc !important;'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
